@@ -1,6 +1,3 @@
-"""
-Starting module with user greeting and registration.
-"""
 import logging
 from aiogram.types import Message, CallbackQuery
 
@@ -12,17 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 async def greating(event: Message | CallbackQuery):
-    """
-    Handle user greeting and registration.
-    
-    Args:
-        event: Message or CallbackQuery event
-    """
-    # Get message and user
     if isinstance(event, CallbackQuery):
         message = event.message
         user = event.from_user
-        # Delete the callback message
         try:
             await event.message.delete()
         except:
@@ -30,52 +19,44 @@ async def greating(event: Message | CallbackQuery):
     else:
         message = event
         user = event.from_user
-    
+
     user_id = user.id
     full_name = user.full_name
-    
+
     try:
-        # Check if user is superadmin
         if db.is_superadmin(user_id):
-            # Check if superadmin is also premium user
             if db.is_premium_user(user_id):
                 await message.answer(
-                    f'╔═══════════════════════╗\n'
-                    f'║   👑 SUPERADMIN PANEL   ║\n'
-                    f'╚═══════════════════════╝\n\n'
-                    f'Assalomu alaykum, {full_name}! 🛡️\n\n'
+                    f'SUPERADMIN PANEL\n\n'
+                    f'Assalomu alaykum, {full_name}!\n\n'
                     f'Sizda barcha admin va premium huquqlar mavjud.',
                     reply_markup=superadmin_premium_main,
                     parse_mode='HTML'
                 )
             else:
                 await message.answer(
-                    f'╔═══════════════════════╗\n'
-                    f'║   👑 SUPERADMIN PANEL   ║\n'
-                    f'╚═══════════════════════╝\n\n'
-                    f'Assalomu alaykum, {full_name}! 🛡️',
+                    f'SUPERADMIN PANEL\n\n'
+                    f'Assalomu alaykum, {full_name}!',
                     reply_markup=superadmin_main,
                     parse_mode='HTML'
                 )
             logger.info(f"Superadmin {user_id} accessed the bot")
             return
-        
-        # Check if user exists
+
         if not db.user_exists(user_id):
-            # Register new user
             db.add_user(user_id, subscription=False)
-            
+
             welcome_text = (
-                f"🎉 <b>Xush kelibsiz!</b>\n\n"
+                f"<b>Xush kelibsiz!</b>\n\n"
                 f"Assalomu alaykum, {full_name}!\n\n"
-                f"Siz muvaffaqiyatli ro'yxatdan o'tdingiz. ✅\n\n"
-                f"<b>📢 Botimiz imkoniyatlari:</b>\n"
-                f"• Avtomatik postlar yaratish\n"
-                f"• Kanallarni boshqarish\n"
-                f"• Vaqt rejalashtirish\n\n"
-                f"💡 <i>Premium obuna bilan ko'proq imkoniyatlar!</i>"
+                f"Siz muvaffaqiyatli ro'yxatdan o'tdingiz.\n\n"
+                f"<b>Botimiz imkoniyatlari:</b>\n"
+                f"- Avtomatik postlar yaratish\n"
+                f"- Kanallarni boshqarish\n"
+                f"- Vaqt rejalashtirish\n\n"
+                f"<i>Premium obuna bilan ko'proq imkoniyatlar!</i>"
             )
-            
+
             await message.answer(
                 welcome_text,
                 reply_markup=non_premium,
@@ -83,7 +64,6 @@ async def greating(event: Message | CallbackQuery):
             )
             logger.info(f"New user registered: {user_id}")
         else:
-            # Existing user
             if db.is_premium_user(user_id):
                 welcome_msg = MESSAGES["welcome_premium"].format(name=full_name)
                 await message.answer(

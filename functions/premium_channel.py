@@ -49,11 +49,11 @@ async def requesting_id(call: CallbackQuery, state: FSMContext):
             return
 
         await call.message.answer(
-            "📋 <b>Kanal qo'shish bo'yicha ko'rsatma:</b>\n\n"
-            "1️⃣ Botni kanalingizga qo'shing\n"
-            "2️⃣ Botni kanalda ADMIN qiling\n"
-            "3️⃣ Kanalingizdan biror postni bu yerga forward qiling\n\n"
-            "⚠️ Bot admin bo'lmasa, kanal qo'shilmaydi!",
+            "<b>Kanal qo'shish bo'yicha ko'rsatma:</b>\n\n"
+            "1. Botni kanalingizga qo'shing\n"
+            "2. Botni kanalda ADMIN qiling\n"
+            "3. Kanalingizdan biror postni bu yerga forward qiling\n\n"
+            "Bot admin bo'lmasa, kanal qo'shilmaydi!",
             reply_markup=p_back_to_main,
             parse_mode="HTML"
         )
@@ -109,7 +109,7 @@ async def premium_admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot:
             return
 
         if db.channel_exists(channel_id, premium=True):
-            await call.answer("❌ Bu kanal allaqachon qo'shilgan", show_alert=True)
+            await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
             await state.clear()
             return
 
@@ -119,7 +119,7 @@ async def premium_admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot:
             member = await bot.get_chat_member(channel_id, bot_id)
             if member.status in ("administrator", "creator"):
                 if db.channel_exists(channel_id, premium=True):
-                    await call.answer("❌ Bu kanal allaqachon qo'shilgan", show_alert=True)
+                    await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
                     await state.clear()
                     return
 
@@ -128,12 +128,10 @@ async def premium_admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot:
                 await call.message.delete()
 
                 success_message = (
-                    "╔═══════════════════════╗\n"
-                    "║  ✅ KANAL QO'SHILDI!  ║\n"
-                    "╚═══════════════════════╝\n\n"
-                    "🎉 <b>Tabriklaymiz!</b>\n\n"
+                    "KANAL QO'SHILDI!\n\n"
+                    "<b>Tabriklaymiz!</b>\n\n"
                     "Premium kanalingiz tizimga muvaffaqiyatli qo'shildi.\n\n"
-                    "📊 <b>Keyingi qadam:</b>\n"
+                    "<b>Keyingi qadam:</b>\n"
                     "Kanalinggizga bir kunda nechta post tashlamoqchisiz?"
                 )
 
@@ -144,10 +142,10 @@ async def premium_admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot:
                 )
                 logger.info(f"Premium channel {channel_id} added for user {user_id}")
             else:
-                await call.answer("❌ Bot hali admin emas. Iltimos botni kanalda admin qiling.", show_alert=True)
+                await call.answer("Bot hali admin emas. Iltimos botni kanalda admin qiling.", show_alert=True)
         except Exception as e:
             logger.error(f"Error checking bot admin status: {e}")
-            await call.answer("❌ Iltimos botni kanalda admin qiling", show_alert=True)
+            await call.answer("Iltimos botni kanalda admin qiling", show_alert=True)
     except Exception as e:
         logger.error(f"Error in premium_admin_confirm_yes: {e}", exc_info=True)
         await call.answer("Xatolik yuz berdi", show_alert=True)
@@ -157,7 +155,7 @@ async def premium_admin_confirm_no(call: CallbackQuery, state: FSMContext):
     try:
         await call.message.edit_text(
             "Iltimos botni kanalinggizga qo'shib admin qiling.\n\n"
-            "Admin qilganingizdan keyin \"Ha ✅\" tugmasini bosing.",
+            "Admin qilganingizdan keyin \"Ha\" tugmasini bosing.",
             reply_markup=premium_admin_confirm
         )
     except Exception as e:
@@ -190,7 +188,7 @@ async def select_post_number(message: Message, state: FSMContext):
             return
 
         await state.update_data(post_count=post_count, current_post=1, channel_id=channel_id)
-        await message.answer("⏰ Iltimos 1-post uchun vaqtni kiriting (HH:MM)")
+        await message.answer("Iltimos 1-post uchun vaqtni kiriting (HH:MM)")
         await state.set_state(PremiumChannel.POST_TIME)
     except Exception as e:
         logger.error(f"Error in select_post_number: {e}", exc_info=True)
@@ -209,7 +207,7 @@ async def insert_time(message: Message, state: FSMContext):
 
         if not validate_time_format(message.text):
             await message.answer(
-                "❌ Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
+                "Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
             )
             return
 
@@ -223,7 +221,7 @@ async def insert_time(message: Message, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_time": message.text, "channel_id": channel_id})
         await message.answer(
-            f"📝 Endi {current_post}-post uchun mavzuni kiriting (maks {MAX_THEME_WORDS_PREMIUM} so'z)"
+            f"Endi {current_post}-post uchun mavzuni kiriting (maks {MAX_THEME_WORDS_PREMIUM} so'z)"
         )
         await state.set_state(PremiumChannel.POST_THEME)
     except Exception as e:
@@ -245,7 +243,7 @@ async def insert_theme(message: Message, state: FSMContext):
         is_valid, word_count = validate_word_count(message.text, max_words=MAX_THEME_WORDS_PREMIUM)
         if not is_valid:
             await message.answer(
-                f"❌ Mavzu {MAX_THEME_WORDS_PREMIUM} so'zdan oshmasligi kerak. "
+                f"Mavzu {MAX_THEME_WORDS_PREMIUM} so'zdan oshmasligi kerak. "
                 f"Siz {word_count} so'z kiritdingiz. Qayta kiriting."
             )
             return
@@ -265,7 +263,7 @@ async def insert_theme(message: Message, state: FSMContext):
 
         if IMAGE_MODE:
             await message.answer(
-                f"🖼️ {current_post}-post uchun rasm qo'shasizmi?",
+                f"{current_post}-post uchun rasm qo'shasizmi?",
                 reply_markup=premium_image_toggle
             )
             await state.set_state(PremiumChannel.IMAGE_TOGGLE)
@@ -275,13 +273,13 @@ async def insert_theme(message: Message, state: FSMContext):
             if current_post < post_count:
                 await state.update_data(current_post=current_post + 1, channel_id=channel_id)
                 await message.answer(
-                    f"⏰ Iltimos {current_post+1}-post uchun vaqtni kiriting (HH:MM)",
+                    f"Iltimos {current_post+1}-post uchun vaqtni kiriting (HH:MM)",
                     reply_markup=ReplyKeyboardRemove()
                 )
                 await state.set_state(PremiumChannel.POST_TIME)
             else:
                 await message.answer(
-                    "✅ Barcha vaqt va mavzular muvaffaqiyatli saqlandi.",
+                    "Barcha vaqt va mavzular muvaffaqiyatli saqlandi.",
                     reply_markup=p_back_to_main
                 )
                 await state.clear()
@@ -323,13 +321,13 @@ async def handle_premium_image_toggle(call: CallbackQuery, state: FSMContext):
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)
             await call.message.answer(
-                f"⏰ Iltimos {current_post+1}-post uchun vaqtni kiriting (HH:MM)",
+                f"Iltimos {current_post+1}-post uchun vaqtni kiriting (HH:MM)",
                 reply_markup=ReplyKeyboardRemove()
             )
             await state.set_state(PremiumChannel.POST_TIME)
         else:
             await call.message.answer(
-                "✅ Barcha vaqt va mavzular muvaffaqiyatli saqlandi.",
+                "Barcha vaqt va mavzular muvaffaqiyatli saqlandi.",
                 reply_markup=p_back_to_main
             )
             await state.clear()

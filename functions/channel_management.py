@@ -23,13 +23,13 @@ def create_channels_list_keyboard(channels, action_prefix):
             channel_name = f"Kanal {channel_id}"
 
         row = [
-            InlineKeyboardButton(text=f"📢 {channel_name}", callback_data=f"channel_info:{channel_id}"),
-            InlineKeyboardButton(text="🗑", callback_data=f"delete_ch:{channel_id}:{action_prefix}"),
-            InlineKeyboardButton(text="✏️", callback_data=f"edit_ch:{channel_id}:{action_prefix}")
+            InlineKeyboardButton(text=f"{channel_name}", callback_data=f"channel_info:{channel_id}"),
+            InlineKeyboardButton(text="O'chirish", callback_data=f"delete_ch:{channel_id}:{action_prefix}"),
+            InlineKeyboardButton(text="Tahrir", callback_data=f"edit_ch:{channel_id}:{action_prefix}")
         ]
         keyboard.append(row)
 
-    keyboard.append([InlineKeyboardButton(text="◀️ Orqaga", callback_data="back")])
+    keyboard.append([InlineKeyboardButton(text="Orqaga", callback_data="back")])
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -38,11 +38,11 @@ def create_edit_options_keyboard(channel_id, is_premium):
     prefix = "p" if is_premium else "f"
 
     keyboard = [
-        [InlineKeyboardButton(text="➕ Post qo'shish", callback_data=f"add_post:{channel_id}:{prefix}")],
-        [InlineKeyboardButton(text="⏰ Vaqtni o'zgartirish", callback_data=f"edit_time:{channel_id}:{prefix}")],
-        [InlineKeyboardButton(text="📝 Mavzuni o'zgartirish", callback_data=f"edit_theme:{channel_id}:{prefix}")],
-        [InlineKeyboardButton(text="🗑 Postni o'chirish", callback_data=f"delete_post:{channel_id}:{prefix}")],
-        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="manage_channels")]
+        [InlineKeyboardButton(text="Post qo'shish", callback_data=f"add_post:{channel_id}:{prefix}")],
+        [InlineKeyboardButton(text="Vaqtni o'zgartirish", callback_data=f"edit_time:{channel_id}:{prefix}")],
+        [InlineKeyboardButton(text="Mavzuni o'zgartirish", callback_data=f"edit_theme:{channel_id}:{prefix}")],
+        [InlineKeyboardButton(text="Postni o'chirish", callback_data=f"delete_post:{channel_id}:{prefix}")],
+        [InlineKeyboardButton(text="Orqaga", callback_data="manage_channels")]
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -62,7 +62,7 @@ def create_posts_list_keyboard(posts, channel_id, action_type, is_premium):
 
         keyboard.append([InlineKeyboardButton(text=button_text, callback_data=callback_data)])
 
-    keyboard.append([InlineKeyboardButton(text="◀️ Orqaga", callback_data=f"edit_ch:{channel_id}:{prefix}")])
+    keyboard.append([InlineKeyboardButton(text="Orqaga", callback_data=f"edit_ch:{channel_id}:{prefix}")])
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -77,7 +77,7 @@ async def show_channels_list(call: CallbackQuery):
 
         if not channels:
             await call.message.edit_text(
-                "❌ Sizda hech qanday kanal yo'q.",
+                "Sizda hech qanday kanal yo'q.",
                 reply_markup=back_to_main
             )
             return
@@ -86,7 +86,7 @@ async def show_channels_list(call: CallbackQuery):
         keyboard = create_channels_list_keyboard(channels, prefix)
 
         await call.message.edit_text(
-            "📢 <b>Sizning kanallaringiz:</b>\n\n"
+            "<b>Sizning kanallaringiz:</b>\n\n"
             "Kerakli amalni tanlang:",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -109,13 +109,13 @@ async def confirm_delete_channel(call: CallbackQuery, state: FSMContext):
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ Ha, o'chirish", callback_data="confirm_delete_yes"),
-                InlineKeyboardButton(text="❌ Yo'q", callback_data="confirm_delete_no")
+                InlineKeyboardButton(text="Ha, o'chirish", callback_data="confirm_delete_yes"),
+                InlineKeyboardButton(text="Yo'q", callback_data="confirm_delete_no")
             ]
         ])
 
         await call.message.edit_text(
-            "⚠️ <b>Diqqat!</b>\n\n"
+            "<b>Diqqat!</b>\n\n"
             f"Kanalni o'chirishni tasdiqlaysizmi?\n"
             "Bu amalni bekor qilib bo'lmaydi.",
             reply_markup=keyboard,
@@ -141,7 +141,7 @@ async def delete_channel_confirmed(call: CallbackQuery, state: FSMContext):
         db.delete_channel(channel_id, premium=is_premium)
 
         await call.message.edit_text(
-            "✅ Kanal muvaffaqiyatli o'chirildi!",
+            "Kanal muvaffaqiyatli o'chirildi!",
             reply_markup=back_to_main
         )
         await state.clear()
@@ -171,7 +171,7 @@ async def show_edit_options(call: CallbackQuery):
         keyboard = create_edit_options_keyboard(channel_id, is_premium)
 
         await call.message.edit_text(
-            "✏️ <b>Kanalni tahrirlash</b>\n\n"
+            "<b>Kanalni tahrirlash</b>\n\n"
             "Qaysi qismini tahrirlashni xohlaysiz?",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -190,13 +190,13 @@ async def show_posts_for_time_edit(call: CallbackQuery):
         posts = db.get_channel_posts(channel_id, premium=is_premium)
 
         if not posts:
-            await call.answer("❌ Hech qanday post topilmadi", show_alert=True)
+            await call.answer("Hech qanday post topilmadi", show_alert=True)
             return
 
         keyboard = create_posts_list_keyboard(posts, channel_id, "select_time", is_premium)
 
         await call.message.edit_text(
-            "⏰ <b>Vaqtni o'zgartirish</b>\n\n"
+            "<b>Vaqtni o'zgartirish</b>\n\n"
             "Qaysi postning vaqtini o'zgartirmoqchisiz?",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -215,13 +215,13 @@ async def show_posts_for_theme_edit(call: CallbackQuery):
         posts = db.get_channel_posts(channel_id, premium=is_premium)
 
         if not posts:
-            await call.answer("❌ Hech qanday post topilmadi", show_alert=True)
+            await call.answer("Hech qanday post topilmadi", show_alert=True)
             return
 
         keyboard = create_posts_list_keyboard(posts, channel_id, "select_theme", is_premium)
 
         await call.message.edit_text(
-            "📝 <b>Mavzuni o'zgartirish</b>\n\n"
+            "<b>Mavzuni o'zgartirish</b>\n\n"
             "Qaysi postning mavzusini o'zgartirmoqchisiz?",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -240,13 +240,13 @@ async def show_posts_for_delete(call: CallbackQuery):
         posts = db.get_channel_posts(channel_id, premium=is_premium)
 
         if not posts:
-            await call.answer("❌ Hech qanday post topilmadi", show_alert=True)
+            await call.answer("Hech qanday post topilmadi", show_alert=True)
             return
 
         keyboard = create_posts_list_keyboard(posts, channel_id, "confirm_delete_post", is_premium)
 
         await call.message.edit_text(
-            "🗑 <b>Postni o'chirish</b>\n\n"
+            "<b>Postni o'chirish</b>\n\n"
             "Qaysi postni o'chirmoqchisiz?",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -270,7 +270,7 @@ async def request_new_time(call: CallbackQuery, state: FSMContext):
         )
 
         await call.message.edit_text(
-            "⏰ <b>Yangi vaqtni kiriting</b>\n\n"
+            "<b>Yangi vaqtni kiriting</b>\n\n"
             "Format: HH:MM (masalan 09:30)"
         )
         await state.set_state(EditChannelPost.EDIT_TIME)
@@ -283,7 +283,7 @@ async def process_new_time(message: Message, state: FSMContext):
     try:
         if not validate_time_format(message.text):
             await message.answer(
-                "❌ Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
+                "Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
             )
             return
 
@@ -296,14 +296,14 @@ async def process_new_time(message: Message, state: FSMContext):
             db.update_single_post(channel_id, post_num, time=message.text, premium=is_premium)
         except ValueError:
             await message.answer(
-                "⛔ Bu kanal post vaqti oxirgi tahrirdan 24 soat o'tmagani uchun o'zgartirib bo'lmaydi. Keyinroq urinib ko'ring.",
+                "Bu kanal post vaqti oxirgi tahrirdan 24 soat o'tmagani uchun o'zgartirib bo'lmaydi. Keyinroq urinib ko'ring.",
                 reply_markup=back_to_main
             )
             await state.clear()
             return
 
         await message.answer(
-            "✅ Vaqt muvaffaqiyatli o'zgartirildi!",
+            "Vaqt muvaffaqiyatli o'zgartirildi!",
             reply_markup=back_to_main
         )
         await state.clear()
@@ -332,7 +332,7 @@ async def request_new_theme(call: CallbackQuery, state: FSMContext):
 
         max_words = MAX_THEME_WORDS_PREMIUM if is_premium else MAX_THEME_WORDS_FREE
         await call.message.edit_text(
-            f"📝 <b>Yangi mavzuni kiriting</b>\n\n"
+            f"<b>Yangi mavzuni kiriting</b>\n\n"
             f"Maksimal {max_words} so'z",
             parse_mode="HTML"
         )
@@ -356,7 +356,7 @@ async def process_new_theme(message: Message, state: FSMContext):
         is_valid, word_count = validate_word_count(message.text, max_words=max_words)
         if not is_valid:
             await message.answer(
-                f"❌ Mavzu {max_words} so'zdan oshmasligi kerak. "
+                f"Mavzu {max_words} so'zdan oshmasligi kerak. "
                 f"Siz {word_count} so'z kiritdingiz. Qayta kiriting."
             )
             return
@@ -364,7 +364,7 @@ async def process_new_theme(message: Message, state: FSMContext):
         db.update_single_post(channel_id, post_num, theme=message.text, premium=is_premium)
 
         await message.answer(
-            "✅ Mavzu muvaffaqiyatli o'zgartirildi!",
+            "Mavzu muvaffaqiyatli o'zgartirildi!",
             reply_markup=back_to_main
         )
         await state.clear()
@@ -391,13 +391,13 @@ async def confirm_delete_post(call: CallbackQuery, state: FSMContext):
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ Ha, o'chirish", callback_data="delete_post_yes"),
-                InlineKeyboardButton(text="❌ Yo'q", callback_data="delete_post_no")
+                InlineKeyboardButton(text="Ha, o'chirish", callback_data="delete_post_yes"),
+                InlineKeyboardButton(text="Yo'q", callback_data="delete_post_no")
             ]
         ])
 
         await call.message.edit_text(
-            "⚠️ <b>Diqqat!</b>\n\n"
+            "<b>Diqqat!</b>\n\n"
             f"Postni o'chirishni tasdiqlaysizmi?",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -417,7 +417,7 @@ async def delete_post_confirmed(call: CallbackQuery, state: FSMContext):
         db.delete_single_post(channel_id, post_num, premium=is_premium)
 
         await call.message.edit_text(
-            "✅ Post muvaffaqiyatli o'chirildi!",
+            "Post muvaffaqiyatli o'chirildi!",
             reply_markup=back_to_main
         )
         await state.clear()
@@ -433,7 +433,7 @@ async def cancel_delete_post(call: CallbackQuery, state: FSMContext):
     try:
         await state.clear()
         await call.message.edit_text(
-            "❌ Post o'chirish bekor qilindi.",
+            "Post o'chirish bekor qilindi.",
             reply_markup=back_to_main
         )
     except Exception as e:
@@ -455,7 +455,7 @@ async def add_post_start(call: CallbackQuery, state: FSMContext):
         if len(current_posts) >= max_posts:
             tier = "Premium" if is_premium else "Free"
             await call.answer(
-                f"❌ {tier} foydalanuvchi uchun maksimal {max_posts} ta post. Limitga yetdingiz!",
+                f"{tier} foydalanuvchi uchun maksimal {max_posts} ta post. Limitga yetdingiz!",
                 show_alert=True
             )
             return
@@ -463,7 +463,7 @@ async def add_post_start(call: CallbackQuery, state: FSMContext):
         next_post_num = db.get_next_available_post_num(channel_id, premium=is_premium)
 
         if next_post_num is None or next_post_num > max_posts:
-            await call.answer("❌ Bo'sh slot topilmadi!", show_alert=True)
+            await call.answer("Bo'sh slot topilmadi!", show_alert=True)
             return
 
         await state.update_data(
@@ -474,14 +474,14 @@ async def add_post_start(call: CallbackQuery, state: FSMContext):
 
         prefix = "p" if is_premium else "f"
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"edit_ch:{channel_id}:{prefix}")]
+            [InlineKeyboardButton(text="Bekor qilish", callback_data=f"edit_ch:{channel_id}:{prefix}")]
         ])
 
         await call.message.edit_text(
-            f"➕ <b>Yangi post qo'shish</b>\n\n"
-            f"📍 Post raqami: {next_post_num}\n"
-            f"📊 Jami postlar: {len(current_posts)}/{max_posts}\n\n"
-            f"⏰ <b>Post vaqtini kiriting</b>\n"
+            f"<b>Yangi post qo'shish</b>\n\n"
+            f"Post raqami: {next_post_num}\n"
+            f"Jami postlar: {len(current_posts)}/{max_posts}\n\n"
+            f"<b>Post vaqtini kiriting</b>\n"
             f"Format: HH:MM (masalan 09:30)",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -498,7 +498,7 @@ async def process_add_post_time(message: Message, state: FSMContext):
 
         if not validate_time_format(message.text):
             await message.answer(
-                "❌ Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
+                "Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
             )
             return
 
@@ -512,12 +512,12 @@ async def process_add_post_time(message: Message, state: FSMContext):
         max_words = MAX_THEME_WORDS_PREMIUM if is_premium else MAX_THEME_WORDS_FREE
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"edit_ch:{channel_id}:{prefix}")]
+            [InlineKeyboardButton(text="Bekor qilish", callback_data=f"edit_ch:{channel_id}:{prefix}")]
         ])
 
         await message.answer(
-            f"✅ Vaqt qabul qilindi: <b>{message.text}</b>\n\n"
-            f"📝 <b>Endi post mavzusini kiriting</b>\n"
+            f"Vaqt qabul qilindi: <b>{message.text}</b>\n\n"
+            f"<b>Endi post mavzusini kiriting</b>\n"
             f"Maksimal {max_words} so'z",
             reply_markup=keyboard,
             parse_mode="HTML"
@@ -545,7 +545,7 @@ async def process_add_post_theme(message: Message, state: FSMContext):
         is_valid, word_count = validate_word_count(message.text, max_words=max_words)
         if not is_valid:
             await message.answer(
-                f"❌ Mavzu {max_words} so'zdan oshmasligi kerak. "
+                f"Mavzu {max_words} so'zdan oshmasligi kerak. "
                 f"Siz {word_count} so'z kiritdingiz. Qayta kiriting."
             )
             return
@@ -554,7 +554,7 @@ async def process_add_post_theme(message: Message, state: FSMContext):
 
         if is_premium and IMAGE_MODE:
             await message.answer(
-                f"🖼️ Bu post uchun rasm qo'shasizmi?",
+                f"Bu post uchun rasm qo'shasizmi?",
                 reply_markup=premium_image_toggle
             )
             await state.set_state(EditChannelPost.ADD_POST_IMAGE)
@@ -562,10 +562,10 @@ async def process_add_post_theme(message: Message, state: FSMContext):
             db.add_new_post(channel_id, post_num, post_time, message.text, premium=is_premium, with_image='no')
 
             await message.answer(
-                f"✅ <b>Post muvaffaqiyatli qo'shildi!</b>\n\n"
-                f"📍 Post raqami: {post_num}\n"
-                f"⏰ Vaqt: {post_time}\n"
-                f"📝 Mavzu: {message.text}",
+                f"<b>Post muvaffaqiyatli qo'shildi!</b>\n\n"
+                f"Post raqami: {post_num}\n"
+                f"Vaqt: {post_time}\n"
+                f"Mavzu: {message.text}",
                 reply_markup=back_to_main,
                 parse_mode="HTML"
             )
@@ -591,14 +591,14 @@ async def process_add_post_image(call: CallbackQuery, state: FSMContext):
 
         db.add_new_post(channel_id, post_num, post_time, post_theme, premium=True, with_image=with_image)
 
-        image_text = "✅ Rasm bilan" if with_image == 'yes' else "❌ Rasmsiz"
+        image_text = "Rasm bilan" if with_image == 'yes' else "Rasmsiz"
 
         await call.message.answer(
-            f"✅ <b>Post muvaffaqiyatli qo'shildi!</b>\n\n"
-            f"📍 Post raqami: {post_num}\n"
-            f"⏰ Vaqt: {post_time}\n"
-            f"📝 Mavzu: {post_theme}\n"
-            f"🖼️ Rasm: {image_text}",
+            f"<b>Post muvaffaqiyatli qo'shildi!</b>\n\n"
+            f"Post raqami: {post_num}\n"
+            f"Vaqt: {post_time}\n"
+            f"Mavzu: {post_theme}\n"
+            f"Rasm: {image_text}",
             reply_markup=back_to_main,
             parse_mode="HTML"
         )

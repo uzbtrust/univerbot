@@ -1,6 +1,3 @@
-"""
-Callback query handlers for main bot functionality.
-"""
 import logging
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
@@ -14,22 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 async def chanelling(callback: CallbackQuery, state: FSMContext):
-    """
-    Handle channel adding callback.
-    
-    Args:
-        callback: Callback query from user
-        state: FSM context
-    """
     try:
         try:
             await callback.message.delete()
         except Exception:
             pass
-        
+
         user_id = callback.from_user.id
-        
-        # Premium users go to premium channel flow
+
         if db.is_premium_user(user_id):
             await premium_channel.requesting_id(callback, state)
         else:
@@ -40,24 +29,18 @@ async def chanelling(callback: CallbackQuery, state: FSMContext):
 
 
 async def premium(callback: CallbackQuery):
-    """
-    Handle premium subscription menu callback.
-    
-    Args:
-        callback: Callback query from user
-    """
     try:
         user_id = callback.from_user.id
-        
+
         try:
             await callback.message.delete()
         except Exception:
             pass
-        
+
         if db.is_premium_user(user_id):
             await callback.message.answer(
-                '✅ <b>Siz allaqachon premium foydalanuvchisiz!</b>\n\n'
-                '🎯 Barcha premium imkoniyatlardan foydalanishingiz mumkin.',
+                '<b>Siz allaqachon premium foydalanuvchisiz!</b>\n\n'
+                'Barcha premium imkoniyatlardan foydalanishingiz mumkin.',
                 reply_markup=premium_back,
                 parse_mode='HTML'
             )
@@ -67,7 +50,7 @@ async def premium(callback: CallbackQuery):
                 day15=DAY15_PRICE,
                 monthly=MONTHLY_PRICE
             )
-            
+
             await callback.message.answer(
                 premium_msg,
                 reply_markup=premium_buy,
@@ -79,12 +62,6 @@ async def premium(callback: CallbackQuery):
 
 
 async def back(callback: CallbackQuery):
-    """
-    Handle back button callback.
-    
-    Args:
-        callback: Callback query from user
-    """
     try:
         from keyboards.inline import non_premium
         try:

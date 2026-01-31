@@ -1,6 +1,3 @@
-"""
-Inline keyboard layouts for the bot.
-"""
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from config import WEEKLY_PRICE, DAY15_PRICE, MONTHLY_PRICE
@@ -28,7 +25,6 @@ premium_back = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='sub_back')]
 ])
 
-# Add bot to channel keyboards
 add_bot_to_channel = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='➕ Botni kanalga qo\'shish', url='https://t.me/YourBotUsername?startchannel=true')],
     [InlineKeyboardButton(text='✅ Qo\'shdim, davom etish', callback_data='bot_added')]
@@ -40,12 +36,12 @@ p_add_bot_to_channel = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 make_bot_admin_back = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='✅ Tekshirish', callback_data='channel_check'), 
+    [InlineKeyboardButton(text='✅ Tekshirish', callback_data='channel_check'),
      InlineKeyboardButton(text='🔄 Boshqa habar', callback_data='another')]
 ])
 
 p_make_bot_admin_back = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='✅ Tekshirish', callback_data='p_channel_check'), 
+    [InlineKeyboardButton(text='✅ Tekshirish', callback_data='p_channel_check'),
      InlineKeyboardButton(text='🔄 Boshqa habar', callback_data='p_another')]
 ])
 
@@ -76,11 +72,10 @@ p_back_to_main = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 cheque_check = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='✅ Qabul qilish', callback_data='approve'), 
+    [InlineKeyboardButton(text='✅ Qabul qilish', callback_data='approve'),
      InlineKeyboardButton(text='❌ Rad etish', callback_data='reject')]
 ])
 
-# Admin panel keyboards
 admin_panel = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='📊 Statistika', callback_data='admin_stats')],
     [InlineKeyboardButton(text='📢 Xabar yuborish', callback_data='admin_broadcast')],
@@ -107,7 +102,6 @@ confirm_broadcast = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='❌ Bekor qilish', callback_data='cancel_broadcast')]
 ])
 
-# Image toggle keyboard for post creation
 image_toggle = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='🖼️ Ha, rasm qo\'shish', callback_data='image_yes')],
     [InlineKeyboardButton(text='❌ Yo\'q, rasm kerak emas', callback_data='image_no')]
@@ -118,7 +112,6 @@ premium_image_toggle = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='❌ Yo\'q, rasm kerak emas', callback_data='p_image_no')]
 ])
 
-# Bot settings keyboards
 bot_settings_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='💳 To\'lov sozlamalari', callback_data='settings_payment')],
     [InlineKeyboardButton(text='📊 Limitlar', callback_data='settings_limits')],
@@ -147,4 +140,3 @@ limits_settings_menu = InlineKeyboardMarkup(inline_keyboard=[
 back_to_settings = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='admin_settings')]
 ])
-

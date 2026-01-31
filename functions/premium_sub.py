@@ -112,48 +112,45 @@ async def weekly_check(message: Message, bot: Bot, state: FSMContext):
     try:
         if await _send_cheque_to_admin(message, bot, "1 haftalik"):
             await message.answer(
-                "✅ <b>Chek qabul qilindi!</b>\n\n"
+                "<b>Chek qabul qilindi!</b>\n\n"
                 "To'lovinggiz haqida habar adminga yuborildi.\n"
-                "⏳ Admindan javobni kuting.\n\n"
-                "🎁 Xaridingiz uchun rahmat!",
+                "Admindan javobni kuting.\n\n"
+                "Xaridingiz uchun rahmat!",
                 parse_mode='HTML'
             )
             await state.clear()
         else:
-            # Format noto'g'ri - state ni tozalamaymiz, foydalanuvchi qayta yuborishi mumkin
             await message.answer(
-                "❌ <b>To'lov formati noto'g'ri</b>\n\n"
+                "<b>To'lov formati noto'g'ri</b>\n\n"
                 "Iltimos to'lov tushgani haqida:\n"
-                "📸 Rasmli chek yoki\n"
-                "📄 PDF file ko'rinishida yuboring.\n\n"
-                "⚠️ Qaytadan yuboring!",
+                "Rasmli chek yoki\n"
+                "PDF file ko'rinishida yuboring.\n\n"
+                "Qaytadan yuboring!",
                 parse_mode='HTML'
             )
-            # State ni tozalamaymiz - qayta yuborishi mumkin
     except Exception as e:
         logger.error(f"Error in weekly_check: {e}", exc_info=True)
         await message.answer("Xatolik yuz berdi. Qaytadan urinib ko'ring.")
-        # Xatolikda ham state tozalanmaydi
 
 
 async def day15_check(message: Message, bot: Bot, state: FSMContext):
     try:
         if await _send_cheque_to_admin(message, bot, "15 kunlik"):
             await message.answer(
-                "✅ <b>Chek qabul qilindi!</b>\n\n"
+                "<b>Chek qabul qilindi!</b>\n\n"
                 "To'lovinggiz haqida habar adminga yuborildi.\n"
-                "⏳ Admindan javobni kuting.\n\n"
-                "🎁 Xaridingiz uchun rahmat!",
+                "Admindan javobni kuting.\n\n"
+                "Xaridingiz uchun rahmat!",
                 parse_mode='HTML'
             )
             await state.clear()
         else:
             await message.answer(
-                "❌ <b>To'lov formati noto'g'ri</b>\n\n"
+                "<b>To'lov formati noto'g'ri</b>\n\n"
                 "Iltimos to'lov tushgani haqida:\n"
-                "📸 Rasmli chek yoki\n"
-                "📄 PDF file ko'rinishida yuboring.\n\n"
-                "⚠️ Qaytadan yuboring!",
+                "Rasmli chek yoki\n"
+                "PDF file ko'rinishida yuboring.\n\n"
+                "Qaytadan yuboring!",
                 parse_mode='HTML'
             )
     except Exception as e:
@@ -165,20 +162,20 @@ async def monthly_check(message: Message, bot: Bot, state: FSMContext):
     try:
         if await _send_cheque_to_admin(message, bot, "1 oylik"):
             await message.answer(
-                "✅ <b>Chek qabul qilindi!</b>\n\n"
+                "<b>Chek qabul qilindi!</b>\n\n"
                 "To'lovinggiz haqida habar adminga yuborildi.\n"
-                "⏳ Admindan javobni kuting.\n\n"
-                "🎁 Xaridingiz uchun rahmat!",
+                "Admindan javobni kuting.\n\n"
+                "Xaridingiz uchun rahmat!",
                 parse_mode='HTML'
             )
             await state.clear()
         else:
             await message.answer(
-                "❌ <b>To'lov formati noto'g'ri</b>\n\n"
+                "<b>To'lov formati noto'g'ri</b>\n\n"
                 "Iltimos to'lov tushgani haqida:\n"
-                "📸 Rasmli chek yoki\n"
-                "📄 PDF file ko'rinishida yuboring.\n\n"
-                "⚠️ Qaytadan yuboring!",
+                "Rasmli chek yoki\n"
+                "PDF file ko'rinishida yuboring.\n\n"
+                "Qaytadan yuboring!",
                 parse_mode='HTML'
             )
     except Exception as e:
@@ -226,13 +223,13 @@ async def approving(call: CallbackQuery):
             conn.commit()
 
         await call.message.delete()
-        await call.message.answer(f"✅ Obuna tasdiqlandi! ({premium_type}, {days} kun)")
+        await call.message.answer(f"Obuna tasdiqlandi! ({premium_type}, {days} kun)")
 
         await call.bot.send_message(
             chat_id=user_id,
-            text=f"🎉 Tabriklaymiz! Sizning {premium_type} obunangiz tasdiqlandi.\n"
-                 f"📅 Amal qilish muddati: {days} kun\n"
-                 f"🔚 Tugash sanasi: {end_date.strftime('%Y-%m-%d %H:%M')}\n\n"
+            text=f"Tabriklaymiz! Sizning {premium_type} obunangiz tasdiqlandi.\n"
+                 f"Amal qilish muddati: {days} kun\n"
+                 f"Tugash sanasi: {end_date.strftime('%Y-%m-%d %H:%M')}\n\n"
                  f"Endi siz premium foydalanuvchisiz!",
             reply_markup=premium
         )
@@ -245,7 +242,7 @@ async def approving(call: CallbackQuery):
 async def rejecting(call: CallbackQuery):
     try:
         await call.message.delete()
-        await call.message.answer("❌ Obuna rad etildi!")
+        await call.message.answer("Obuna rad etildi!")
 
         user_id = extract_user_id_from_caption(call.message.caption)
         if not user_id:

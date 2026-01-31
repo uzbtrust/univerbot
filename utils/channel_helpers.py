@@ -1,4 +1,3 @@
-"""Shared channel management utilities to reduce code duplication."""
 from __future__ import annotations
 import logging
 from typing import Dict
@@ -22,40 +21,30 @@ async def verify_bot_admin_status(
     is_premium: bool,
     reply_keyboard: ReplyKeyboardMarkup,
 ) -> bool:
-    """
-    Verify bot is admin in channel and handle the flow.
-    
-    Returns:
-        True if bot is admin and channel added, False otherwise
-    """
-    # Check if channel already exists BEFORE checking admin
     if db.channel_exists(channel_id, premium=is_premium):
-        await call.answer("❌ Bu kanal allaqachon qo'shilgan", show_alert=True)
+        await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
         await state.clear()
         if user_id in context_storage:
             del context_storage[user_id]
         return False
-    
+
     bot_id = (await bot.me()).id
-    
+
     try:
         member = await bot.get_chat_member(channel_id, bot_id)
         if member.status in ("administrator", "creator"):
-            # Double-check before insert (race condition protection)
             if db.channel_exists(channel_id, premium=is_premium):
-                await call.answer("❌ Bu kanal allaqachon qo'shilgan", show_alert=True)
+                await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
                 await state.clear()
                 if user_id in context_storage:
                     del context_storage[user_id]
                 return False
-            
-            # Add channel to database
+
             db.add_channel(channel_id, user_id, premium=is_premium)
-            
-            # Delete inline message and send new message with reply keyboard
+
             await call.message.delete()
             await call.message.answer(
-                "✅ Kanal qo'shildi!\n\nKanalinggizga bir kunda nechta post tashlamoqchisiz?",
+                "Kanal qo'shildi!\n\nKanalinggizga bir kunda nechta post tashlamoqchisiz?",
                 reply_markup=reply_keyboard
             )
             await state.clear()
@@ -63,12 +52,11 @@ async def verify_bot_admin_status(
             logger.info(f"{channel_type} channel {channel_id} added for user {user_id}")
             return True
         else:
-            # Bot is not admin - show alert instead of editing
-            await call.answer("❌ Bot hali admin emas. Iltimos botni kanalda admin qiling.", show_alert=True)
+            await call.answer("Bot hali admin emas. Iltimos botni kanalda admin qiling.", show_alert=True)
             return False
     except Exception as e:
         logger.error(f"Error checking bot admin status: {e}")
-        await call.answer("❌ Iltimos botni kanalda admin qiling", show_alert=True)
+        await call.answer("Iltimos botni kanalda admin qiling", show_alert=True)
         return False
 
 

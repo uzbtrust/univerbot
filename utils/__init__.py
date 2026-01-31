@@ -1,4 +1,3 @@
-"""Utils package."""
 from .database import db, DatabaseManager
 from .validators import validate_time_format, validate_word_count
 from .helpers import extract_user_id_from_caption, generate_channel_info_text

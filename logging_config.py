@@ -1,4 +1,3 @@
-"""Centralized logging configuration with rotation and optional JSON formatting."""
 from __future__ import annotations
 import logging
 import logging.handlers
@@ -10,7 +9,7 @@ LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s - %(name)s - %(levelname)s - %
 LOG_JSON = os.getenv("LOG_JSON", "0") == "1"
 LOG_DIR = os.getenv("LOG_DIR", "logs")
 LOG_FILE = os.getenv("LOG_FILE", "bot.log")
-MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", str(2 * 1024 * 1024)))  # 2MB
+MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", str(2 * 1024 * 1024)))
 BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", "3"))
 
 try:
@@ -35,7 +34,6 @@ class JsonFormatter(logging.Formatter):
 def configure_logging(level: Optional[str] = None) -> None:
     root = logging.getLogger()
     if root.handlers:
-        # Already configured
         return
     lvl = getattr(logging, (level or LOG_LEVEL), logging.INFO)
     root.setLevel(lvl)

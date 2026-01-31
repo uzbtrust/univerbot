@@ -91,7 +91,6 @@ class BotManager:
         self.dp.callback_query.register(admin_panel.confirm_broadcast_handler, F.data == "confirm_broadcast")
         self.dp.callback_query.register(admin_panel.cancel_broadcast_handler, F.data == "cancel_broadcast")
 
-        # Admin settings handlers
         self.dp.callback_query.register(admin_panel.show_settings_menu, F.data == "admin_settings")
         self.dp.callback_query.register(admin_panel.show_payment_settings, F.data == "settings_payment")
         self.dp.callback_query.register(admin_panel.show_limits_settings, F.data == "settings_limits")
@@ -149,7 +148,6 @@ class BotManager:
 
         self.dp.message.register(admin_panel.receive_broadcast_message, AdminPanel.BROADCAST_MESSAGE)
 
-        # Admin settings message handlers
         self.dp.message.register(admin_panel.process_edit_card_number, AdminPanel.EDIT_CARD_NUMBER)
         self.dp.message.register(admin_panel.process_edit_card_name, AdminPanel.EDIT_CARD_NAME)
         self.dp.message.register(admin_panel.process_edit_card_surname, AdminPanel.EDIT_CARD_SURNAME)

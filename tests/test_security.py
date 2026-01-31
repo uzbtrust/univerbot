@@ -13,7 +13,6 @@ from utils.security import (
 def test_rate_limit_within_bounds():
     """Test rate limiting allows normal usage."""
     user_id = 12345
-    # First 20 actions should pass
     for _ in range(20):
         assert check_rate_limit(user_id) is True
 
@@ -21,10 +20,8 @@ def test_rate_limit_within_bounds():
 def test_rate_limit_exceeds():
     """Test rate limiting blocks excessive usage."""
     user_id = 99999
-    # Exhaust limit
     for _ in range(20):
         check_rate_limit(user_id)
-    # 21st action should fail
     assert check_rate_limit(user_id) is False
 
 

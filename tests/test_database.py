@@ -84,8 +84,6 @@ def test_premium_cache(db):
     db.add_user(user_id)
     db.add_superadmin(user_id)
     
-    # First call populates cache
     assert db.is_premium_user(user_id) is True
     
-    # Second call should use cache
     assert db.is_premium_user(user_id) is True

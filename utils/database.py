@@ -1,34 +1,14 @@
 import sqlite3
 import time
 import logging
-import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Tuple, List
+import os
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_TABLES = {"channel", "premium_channel", "settings"}
-
-DEFAULT_SETTINGS = {
-    'SUPER_ADMIN1': os.getenv('SUPER_ADMIN1', '0'),
-    'SUPER_ADMIN2': os.getenv('SUPER_ADMIN2', '0'),
-    'ADMIN1_ACTIVE': '1',
-    'ADMIN2_ACTIVE': '0',
-    'CARD_NUMBER': os.getenv('CARD_NUMBER', ''),
-    'CARD_NAME': os.getenv('CARD_NAME', ''),
-    'CARD_SURNAME': os.getenv('CARD_SURNAME', ''),
-    'WEEKLY_PRICE': os.getenv('WEEKLY_PRICE', '5000'),
-    'DAY15_PRICE': os.getenv('DAY15_PRICE', '10000'),
-    'MONTHLY_PRICE': os.getenv('MONTHLY_PRICE', '20000'),
-    'MAX_CHANNELS_FREE': os.getenv('MAX_CHANNELS_FREE', '1'),
-    'MAX_CHANNELS_PREMIUM': os.getenv('MAX_CHANNELS_PREMIUM', '3'),
-    'MAX_POSTS_FREE': os.getenv('MAX_POSTS_FREE', '3'),
-    'MAX_POSTS_PREMIUM': os.getenv('MAX_POSTS_PREMIUM', '15'),
-    'MAX_THEME_WORDS_FREE': os.getenv('MAX_THEME_WORDS_FREE', '10'),
-    'MAX_THEME_WORDS_PREMIUM': os.getenv('MAX_THEME_WORDS_PREMIUM', '15'),
-    'IMAGE_MODE': os.getenv('IMAGE_MODE', 'OFF'),
-}
+ALLOWED_TABLES = {"channel", "premium_channel"}
 
 
 class DatabaseManager:
@@ -59,27 +39,6 @@ class DatabaseManager:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS superadmins (
                     id INTEGER PRIMARY KEY
-                )
-            ''')
-
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS settings (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                )
-            ''')
-
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS pending_cheques (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    subscription_type TEXT NOT NULL,
-                    message_id_admin1 INTEGER,
-                    message_id_admin2 INTEGER,
-                    chat_id_admin1 INTEGER,
-                    chat_id_admin2 INTEGER,
-                    status TEXT DEFAULT 'pending',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
 
@@ -156,17 +115,8 @@ class DatabaseManager:
             self._add_column_if_not_exists(cursor, "channel", "last_edit_time", "TIMESTAMP")
             self._add_column_if_not_exists(cursor, "premium_channel", "last_edit_time", "TIMESTAMP")
 
-            self._init_default_settings(cursor)
-
             conn.commit()
             logger.info("Database tables initialized successfully")
-
-    def _init_default_settings(self, cursor):
-        for key, value in DEFAULT_SETTINGS.items():
-            cursor.execute(
-                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
-                (key, value)
-            )
 
     def _add_column_if_not_exists(self, cursor, table_name: str, column_name: str, column_def: str):
         if table_name not in ALLOWED_TABLES:
@@ -508,93 +458,6 @@ class DatabaseManager:
         self.execute_query(
             f"UPDATE {table} SET last_edit_time = ? WHERE id = ?",
             (edit_time, channel_id)
-        )
-
-    def get_setting(self, key: str, default: str = None) -> str:
-        result = self.execute_query(
-            "SELECT value FROM settings WHERE key = ?",
-            (key,),
-            fetch_one=True
-        )
-        if result:
-            return result[0]
-        return default
-
-    def set_setting(self, key: str, value: str) -> bool:
-        try:
-            self.execute_query(
-                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
-                (key, value)
-            )
-            return True
-        except Exception as e:
-            logger.error(f"Failed to set setting {key}: {e}")
-            return False
-
-    def get_all_settings(self) -> Dict[str, str]:
-        result = self.execute_query(
-            "SELECT key, value FROM settings",
-            fetch_all=True
-        )
-        return {row[0]: row[1] for row in result} if result else {}
-
-    def get_setting_int(self, key: str, default: int = 0) -> int:
-        value = self.get_setting(key)
-        if value is None:
-            return default
-        try:
-            return int(value)
-        except ValueError:
-            return default
-
-    def get_active_admins(self) -> List[int]:
-        admins = []
-        admin1 = self.get_setting_int('SUPER_ADMIN1')
-        admin2 = self.get_setting_int('SUPER_ADMIN2')
-        admin1_active = self.get_setting('ADMIN1_ACTIVE', '1') == '1'
-        admin2_active = self.get_setting('ADMIN2_ACTIVE', '0') == '1'
-
-        if admin1 and admin1_active:
-            admins.append(admin1)
-        if admin2 and admin2_active:
-            admins.append(admin2)
-
-        return admins
-
-    def add_pending_cheque(self, user_id: int, subscription_type: str,
-                           msg_id_admin1: int = None, msg_id_admin2: int = None,
-                           chat_id_admin1: int = None, chat_id_admin2: int = None) -> int:
-        return self.execute_query(
-            """INSERT INTO pending_cheques
-               (user_id, subscription_type, message_id_admin1, message_id_admin2,
-                chat_id_admin1, chat_id_admin2)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (user_id, subscription_type, msg_id_admin1, msg_id_admin2,
-             chat_id_admin1, chat_id_admin2)
-        )
-
-    def get_pending_cheque_by_message(self, message_id: int, chat_id: int):
-        result = self.execute_query(
-            """SELECT * FROM pending_cheques
-               WHERE (message_id_admin1 = ? AND chat_id_admin1 = ?)
-                  OR (message_id_admin2 = ? AND chat_id_admin2 = ?)
-               AND status = 'pending'""",
-            (message_id, chat_id, message_id, chat_id),
-            fetch_one=True
-        )
-        return result
-
-    def update_cheque_status(self, cheque_id: int, status: str):
-        self.execute_query(
-            "UPDATE pending_cheques SET status = ? WHERE id = ?",
-            (status, cheque_id)
-        )
-
-    def get_cheque_by_id(self, cheque_id: int):
-        return self.execute_query(
-            "SELECT * FROM pending_cheques WHERE id = ?",
-            (cheque_id,),
-            fetch_one=True
         )
 
 

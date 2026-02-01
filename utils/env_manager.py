@@ -66,5 +66,7 @@ def get_current_settings() -> dict:
         'MAX_POSTS_PREMIUM': env_vars.get('MAX_POSTS_PREMIUM', '15'),
         'MAX_CHANNELS_FREE': env_vars.get('MAX_CHANNELS_FREE', '1'),
         'MAX_CHANNELS_PREMIUM': env_vars.get('MAX_CHANNELS_PREMIUM', '2'),
+        'MAX_THEME_WORDS_FREE': env_vars.get('MAX_THEME_WORDS_FREE', '10'),
+        'MAX_THEME_WORDS_PREMIUM': env_vars.get('MAX_THEME_WORDS_PREMIUM', '15'),
         'IMAGE_MODE': env_vars.get('IMAGE_MODE', 'OFF'),
     }

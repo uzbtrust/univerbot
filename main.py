@@ -103,10 +103,6 @@ class BotManager:
             "edit_max_theme_words_free", "edit_max_theme_words_premium"
         ]))
 
-        self.dp.callback_query.register(admin_panel.show_admin_settings, F.data == "settings_admins")
-        self.dp.callback_query.register(admin_panel.toggle_admin1, F.data == "toggle_admin1")
-        self.dp.callback_query.register(admin_panel.toggle_admin2, F.data == "toggle_admin2")
-        self.dp.callback_query.register(admin_panel.request_edit_admin2, F.data == "edit_admin2")
 
         self.dp.callback_query.register(channel_management.show_channels_list, F.data == "manage_channels")
         self.dp.callback_query.register(channel_management.confirm_delete_channel, F.data.startswith("delete_ch:"))
@@ -166,7 +162,6 @@ class BotManager:
         self.dp.message.register(admin_panel.process_edit_channels_limit, AdminPanel.EDIT_MAX_CHANNELS_PREMIUM)
         self.dp.message.register(admin_panel.process_edit_theme_words_limit, AdminPanel.EDIT_MAX_THEME_WORDS_FREE)
         self.dp.message.register(admin_panel.process_edit_theme_words_limit, AdminPanel.EDIT_MAX_THEME_WORDS_PREMIUM)
-        self.dp.message.register(admin_panel.process_edit_admin2, AdminPanel.EDIT_SUPER_ADMIN2)
 
         self.dp.message.register(channel_management.process_new_time, EditChannelPost.EDIT_TIME)
         self.dp.message.register(channel_management.process_new_theme, EditChannelPost.EDIT_THEME)

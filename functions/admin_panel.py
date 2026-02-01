@@ -7,10 +7,12 @@ from states import AdminPanel
 from keyboards.inline import (
     admin_panel, confirm_broadcast, back_to_main,
     bot_settings_menu, payment_settings_menu, limits_settings_menu,
-    back_to_settings, build_admin_settings_keyboard, back_to_admin_settings
+    back_to_settings
 )
 from utils.database import db
+from utils.env_manager import update_env_value, get_current_settings
 from utils.security import validate_broadcast_message
+from config import SUPER_ADMIN1, SUPER_ADMIN2
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +196,8 @@ async def show_settings_menu(call: CallbackQuery):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
-        image_mode = db.get_setting('IMAGE_MODE', 'OFF')
+        settings = get_current_settings()
+        image_mode = settings.get('IMAGE_MODE', 'OFF')
         image_status = "ON" if image_mode == 'ON' else "OFF"
 
         text = (
@@ -215,12 +218,13 @@ async def show_payment_settings(call: CallbackQuery):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
-        card_number = db.get_setting('CARD_NUMBER', '')
-        card_name = db.get_setting('CARD_NAME', '')
-        card_surname = db.get_setting('CARD_SURNAME', '')
-        weekly_price = db.get_setting('WEEKLY_PRICE', '5000')
-        day15_price = db.get_setting('DAY15_PRICE', '10000')
-        monthly_price = db.get_setting('MONTHLY_PRICE', '20000')
+        settings = get_current_settings()
+        card_number = settings.get('CARD_NUMBER', '')
+        card_name = settings.get('CARD_NAME', '')
+        card_surname = settings.get('CARD_SURNAME', '')
+        weekly_price = settings.get('WEEKLY_PRICE', '5000')
+        day15_price = settings.get('DAY15_PRICE', '10000')
+        monthly_price = settings.get('MONTHLY_PRICE', '20000')
 
         text = (
             "<b>To'lov Sozlamalari</b>\n\n"
@@ -230,7 +234,8 @@ async def show_payment_settings(call: CallbackQuery):
             f"Haftalik: {weekly_price} so'm\n"
             f"15 kunlik: {day15_price} so'm\n"
             f"Oylik: {monthly_price} so'm\n\n"
-            "O'zgartirish uchun tanlang:"
+            "O'zgartirish uchun tanlang:\n\n"
+            "<i>Eslatma: O'zgarishlar kuchga kirishi uchun botni restart berish kerak.</i>"
         )
 
         await call.message.edit_text(text, reply_markup=payment_settings_menu, parse_mode="HTML")
@@ -245,12 +250,13 @@ async def show_limits_settings(call: CallbackQuery):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
-        max_posts_free = db.get_setting('MAX_POSTS_FREE', '3')
-        max_posts_premium = db.get_setting('MAX_POSTS_PREMIUM', '15')
-        max_channels_free = db.get_setting('MAX_CHANNELS_FREE', '1')
-        max_channels_premium = db.get_setting('MAX_CHANNELS_PREMIUM', '3')
-        max_theme_words_free = db.get_setting('MAX_THEME_WORDS_FREE', '10')
-        max_theme_words_premium = db.get_setting('MAX_THEME_WORDS_PREMIUM', '15')
+        settings = get_current_settings()
+        max_posts_free = settings.get('MAX_POSTS_FREE', '3')
+        max_posts_premium = settings.get('MAX_POSTS_PREMIUM', '15')
+        max_channels_free = settings.get('MAX_CHANNELS_FREE', '1')
+        max_channels_premium = settings.get('MAX_CHANNELS_PREMIUM', '3')
+        max_theme_words_free = settings.get('MAX_THEME_WORDS_FREE', '10')
+        max_theme_words_premium = settings.get('MAX_THEME_WORDS_PREMIUM', '15')
 
         text = (
             "<b>Limitlar</b>\n\n"
@@ -260,7 +266,8 @@ async def show_limits_settings(call: CallbackQuery):
             f"Premium kanal limiti: {max_channels_premium}\n"
             f"Free mavzu so'z limiti: {max_theme_words_free}\n"
             f"Premium mavzu so'z limiti: {max_theme_words_premium}\n\n"
-            "O'zgartirish uchun tanlang:"
+            "O'zgartirish uchun tanlang:\n\n"
+            "<i>Eslatma: O'zgarishlar kuchga kirishi uchun botni restart berish kerak.</i>"
         )
 
         await call.message.edit_text(text, reply_markup=limits_settings_menu, parse_mode="HTML")
@@ -275,18 +282,20 @@ async def toggle_image_mode(call: CallbackQuery):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
-        current_mode = db.get_setting('IMAGE_MODE', 'OFF')
+        settings = get_current_settings()
+        current_mode = settings.get('IMAGE_MODE', 'OFF')
         new_mode = 'OFF' if current_mode == 'ON' else 'ON'
 
-        if db.set_setting('IMAGE_MODE', new_mode):
+        if update_env_value('IMAGE_MODE', new_mode):
             status = "yoqildi" if new_mode == 'ON' else "o'chirildi"
-            await call.answer(f"Rasm rejimi {status}", show_alert=True)
+            await call.answer(f"Rasm rejimi {status}. Botni restart bering.", show_alert=True)
 
             image_status = "ON" if new_mode == 'ON' else "OFF"
             text = (
                 "<b>Bot Sozlamalari</b>\n\n"
                 f"Rasm rejimi: {image_status}\n\n"
-                "Qaysi sozlamalarni o'zgartirmoqchisiz?"
+                "Qaysi sozlamalarni o'zgartirmoqchisiz?\n\n"
+                "<i>Eslatma: O'zgarishlar kuchga kirishi uchun botni restart berish kerak.</i>"
             )
             await call.message.edit_text(text, reply_markup=bot_settings_menu, parse_mode="HTML")
         else:
@@ -294,151 +303,6 @@ async def toggle_image_mode(call: CallbackQuery):
     except Exception as e:
         logger.error(f"Error in toggle_image_mode: {e}", exc_info=True)
         await call.answer("Xatolik yuz berdi", show_alert=True)
-
-
-async def show_admin_settings(call: CallbackQuery):
-    try:
-        if not db.is_superadmin(call.from_user.id):
-            await call.answer("Sizda admin huquqi yo'q", show_alert=True)
-            return
-
-        admin1_id = db.get_setting_int('SUPER_ADMIN1')
-        admin2_id = db.get_setting_int('SUPER_ADMIN2')
-        admin1_active = db.get_setting('ADMIN1_ACTIVE', '1') == '1'
-        admin2_active = db.get_setting('ADMIN2_ACTIVE', '0') == '1'
-
-        admin2_display = str(admin2_id) if admin2_id else "O'rnatilmagan"
-        admin1_status = "✅ Faol" if admin1_active else "❌ Nofaol"
-        admin2_status = "✅ Faol" if admin2_active else "❌ Nofaol"
-
-        text = (
-            "<b>Adminlar Sozlamasi</b>\n\n"
-            f"<b>Admin 1 (asosiy):</b> <code>{admin1_id}</code>\n"
-            f"Status: {admin1_status}\n\n"
-            f"<b>Admin 2:</b> <code>{admin2_display}</code>\n"
-            f"Status: {admin2_status}\n\n"
-            "Cheklar faol adminlarga yuboriladi.\n"
-            "Admin 1 ni o'zgartirish imkoni yo'q."
-        )
-
-        keyboard = build_admin_settings_keyboard(admin1_active, admin2_active, admin2_id)
-        await call.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
-    except Exception as e:
-        logger.error(f"Error in show_admin_settings: {e}", exc_info=True)
-        await call.answer("Xatolik yuz berdi", show_alert=True)
-
-
-async def toggle_admin1(call: CallbackQuery):
-    try:
-        if not db.is_superadmin(call.from_user.id):
-            await call.answer("Sizda admin huquqi yo'q", show_alert=True)
-            return
-
-        current = db.get_setting('ADMIN1_ACTIVE', '1')
-        new_status = '0' if current == '1' else '1'
-
-        admin2_active = db.get_setting('ADMIN2_ACTIVE', '0')
-        if new_status == '0' and admin2_active == '0':
-            await call.answer("Kamida bitta admin faol bo'lishi kerak!", show_alert=True)
-            return
-
-        db.set_setting('ADMIN1_ACTIVE', new_status)
-
-        status = "yoqildi" if new_status == '1' else "o'chirildi"
-        await call.answer(f"Admin 1 {status}", show_alert=True)
-
-        await show_admin_settings(call)
-    except Exception as e:
-        logger.error(f"Error in toggle_admin1: {e}", exc_info=True)
-        await call.answer("Xatolik yuz berdi", show_alert=True)
-
-
-async def toggle_admin2(call: CallbackQuery):
-    try:
-        if not db.is_superadmin(call.from_user.id):
-            await call.answer("Sizda admin huquqi yo'q", show_alert=True)
-            return
-
-        admin2_id = db.get_setting_int('SUPER_ADMIN2')
-        if not admin2_id:
-            await call.answer("Admin 2 o'rnatilmagan. Avval o'rnating.", show_alert=True)
-            return
-
-        current = db.get_setting('ADMIN2_ACTIVE', '0')
-        new_status = '0' if current == '1' else '1'
-
-        admin1_active = db.get_setting('ADMIN1_ACTIVE', '1')
-        if new_status == '0' and admin1_active == '0':
-            await call.answer("Kamida bitta admin faol bo'lishi kerak!", show_alert=True)
-            return
-
-        db.set_setting('ADMIN2_ACTIVE', new_status)
-
-        status = "yoqildi" if new_status == '1' else "o'chirildi"
-        await call.answer(f"Admin 2 {status}", show_alert=True)
-
-        await show_admin_settings(call)
-    except Exception as e:
-        logger.error(f"Error in toggle_admin2: {e}", exc_info=True)
-        await call.answer("Xatolik yuz berdi", show_alert=True)
-
-
-async def request_edit_admin2(call: CallbackQuery, state: FSMContext):
-    try:
-        if not db.is_superadmin(call.from_user.id):
-            await call.answer("Sizda admin huquqi yo'q", show_alert=True)
-            return
-
-        admin2_id = db.get_setting_int('SUPER_ADMIN2')
-        admin2_display = str(admin2_id) if admin2_id else "O'rnatilmagan"
-
-        text = (
-            "<b>Admin 2 ni o'zgartirish</b>\n\n"
-            f"Joriy Admin 2: <code>{admin2_display}</code>\n\n"
-            "Yangi admin ID sini kiriting yoki\n"
-            "admin bo'lishi kerak bo'lgan shaxsdan biror xabarni forward qiling."
-        )
-
-        await call.message.edit_text(text, reply_markup=back_to_admin_settings, parse_mode="HTML")
-        await state.set_state(AdminPanel.EDIT_SUPER_ADMIN2)
-    except Exception as e:
-        logger.error(f"Error in request_edit_admin2: {e}", exc_info=True)
-        await call.answer("Xatolik yuz berdi", show_alert=True)
-
-
-async def process_edit_admin2(message: Message, state: FSMContext):
-    try:
-        new_admin_id = None
-
-        if message.forward_from:
-            new_admin_id = message.forward_from.id
-            admin_name = message.forward_from.full_name
-        elif message.text and message.text.strip().isdigit():
-            new_admin_id = int(message.text.strip())
-            admin_name = f"ID: {new_admin_id}"
-        else:
-            await message.answer(
-                "Noto'g'ri format. Raqam kiriting yoki xabar forward qiling.",
-                reply_markup=back_to_admin_settings
-            )
-            return
-
-        db.set_setting('SUPER_ADMIN2', str(new_admin_id))
-        db.add_superadmin(new_admin_id)
-
-        await message.answer(
-            f"Admin 2 muvaffaqiyatli o'zgartirildi!\n\n"
-            f"Yangi admin: {admin_name}\n"
-            f"ID: <code>{new_admin_id}</code>",
-            reply_markup=back_to_admin_settings,
-            parse_mode="HTML"
-        )
-        await state.clear()
-        logger.info(f"Admin 2 updated to {new_admin_id}")
-    except Exception as e:
-        logger.error(f"Error in process_edit_admin2: {e}", exc_info=True)
-        await message.answer("Xatolik yuz berdi", reply_markup=back_to_admin_settings)
-        await state.clear()
 
 
 async def request_edit_value(call: CallbackQuery, state: FSMContext):
@@ -460,8 +324,8 @@ async def request_edit_value(call: CallbackQuery, state: FSMContext):
             'edit_max_posts_premium': ('MAX_POSTS_PREMIUM', 'Premium post limitini kiriting (1-15):', AdminPanel.EDIT_MAX_POSTS_PREMIUM),
             'edit_max_channels_free': ('MAX_CHANNELS_FREE', 'Free kanal limitini kiriting:', AdminPanel.EDIT_MAX_CHANNELS_FREE),
             'edit_max_channels_premium': ('MAX_CHANNELS_PREMIUM', 'Premium kanal limitini kiriting:', AdminPanel.EDIT_MAX_CHANNELS_PREMIUM),
-            'edit_max_theme_words_free': ('MAX_THEME_WORDS_FREE', 'Free mavzu so\'z limitini kiriting:', AdminPanel.EDIT_MAX_THEME_WORDS_FREE),
-            'edit_max_theme_words_premium': ('MAX_THEME_WORDS_PREMIUM', 'Premium mavzu so\'z limitini kiriting:', AdminPanel.EDIT_MAX_THEME_WORDS_PREMIUM),
+            'edit_max_theme_words_free': ('MAX_THEME_WORDS_FREE', "Free mavzu so'z limitini kiriting:", AdminPanel.EDIT_MAX_THEME_WORDS_FREE),
+            'edit_max_theme_words_premium': ('MAX_THEME_WORDS_PREMIUM', "Premium mavzu so'z limitini kiriting:", AdminPanel.EDIT_MAX_THEME_WORDS_PREMIUM),
         }
 
         if edit_type not in prompts:
@@ -469,7 +333,8 @@ async def request_edit_value(call: CallbackQuery, state: FSMContext):
             return
 
         env_key, prompt_text, next_state = prompts[edit_type]
-        current_value = db.get_setting(env_key, '')
+        settings = get_current_settings()
+        current_value = settings.get(env_key, '')
 
         await state.update_data(edit_env_key=env_key)
 
@@ -489,9 +354,10 @@ async def process_edit_card_number(message: Message, state: FSMContext):
             await message.answer("Karta raqami 16 ta raqamdan iborat bo'lishi kerak")
             return
 
-        if db.set_setting('CARD_NUMBER', value):
+        if update_env_value('CARD_NUMBER', value):
             await message.answer(
-                f"Karta raqami yangilandi: <code>{value}</code>",
+                f"Karta raqami yangilandi: <code>{value}</code>\n\n"
+                "<i>Botni restart bering.</i>",
                 reply_markup=back_to_settings,
                 parse_mode="HTML"
             )
@@ -513,8 +379,12 @@ async def process_edit_card_name(message: Message, state: FSMContext):
             await message.answer("Ism 2-50 belgi orasida bo'lishi kerak")
             return
 
-        if db.set_setting('CARD_NAME', value):
-            await message.answer(f"Ism yangilandi: {value}", reply_markup=back_to_settings)
+        if update_env_value('CARD_NAME', value):
+            await message.answer(
+                f"Ism yangilandi: {value}\n\n<i>Botni restart bering.</i>",
+                reply_markup=back_to_settings,
+                parse_mode="HTML"
+            )
             await state.clear()
         else:
             await message.answer("Xatolik yuz berdi", reply_markup=back_to_settings)
@@ -533,8 +403,12 @@ async def process_edit_card_surname(message: Message, state: FSMContext):
             await message.answer("Familiya 2-50 belgi orasida bo'lishi kerak")
             return
 
-        if db.set_setting('CARD_SURNAME', value):
-            await message.answer(f"Familiya yangilandi: {value}", reply_markup=back_to_settings)
+        if update_env_value('CARD_SURNAME', value):
+            await message.answer(
+                f"Familiya yangilandi: {value}\n\n<i>Botni restart bering.</i>",
+                reply_markup=back_to_settings,
+                parse_mode="HTML"
+            )
             await state.clear()
         else:
             await message.answer("Xatolik yuz berdi", reply_markup=back_to_settings)
@@ -561,8 +435,12 @@ async def process_edit_price(message: Message, state: FSMContext):
         data = await state.get_data()
         env_key = data.get('edit_env_key')
 
-        if db.set_setting(env_key, value):
-            await message.answer(f"Narx yangilandi: {value} so'm", reply_markup=back_to_settings)
+        if update_env_value(env_key, value):
+            await message.answer(
+                f"Narx yangilandi: {value} so'm\n\n<i>Botni restart bering.</i>",
+                reply_markup=back_to_settings,
+                parse_mode="HTML"
+            )
             await state.clear()
         else:
             await message.answer("Xatolik yuz berdi", reply_markup=back_to_settings)
@@ -589,8 +467,12 @@ async def process_edit_posts_limit(message: Message, state: FSMContext):
         data = await state.get_data()
         env_key = data.get('edit_env_key')
 
-        if db.set_setting(env_key, value):
-            await message.answer(f"Post limiti yangilandi: {value}", reply_markup=back_to_settings)
+        if update_env_value(env_key, value):
+            await message.answer(
+                f"Post limiti yangilandi: {value}\n\n<i>Botni restart bering.</i>",
+                reply_markup=back_to_settings,
+                parse_mode="HTML"
+            )
             await state.clear()
         else:
             await message.answer("Xatolik yuz berdi", reply_markup=back_to_settings)
@@ -617,8 +499,12 @@ async def process_edit_channels_limit(message: Message, state: FSMContext):
         data = await state.get_data()
         env_key = data.get('edit_env_key')
 
-        if db.set_setting(env_key, value):
-            await message.answer(f"Kanal limiti yangilandi: {value}", reply_markup=back_to_settings)
+        if update_env_value(env_key, value):
+            await message.answer(
+                f"Kanal limiti yangilandi: {value}\n\n<i>Botni restart bering.</i>",
+                reply_markup=back_to_settings,
+                parse_mode="HTML"
+            )
             await state.clear()
         else:
             await message.answer("Xatolik yuz berdi", reply_markup=back_to_settings)
@@ -645,8 +531,12 @@ async def process_edit_theme_words_limit(message: Message, state: FSMContext):
         data = await state.get_data()
         env_key = data.get('edit_env_key')
 
-        if db.set_setting(env_key, value):
-            await message.answer(f"Mavzu so'z limiti yangilandi: {value}", reply_markup=back_to_settings)
+        if update_env_value(env_key, value):
+            await message.answer(
+                f"Mavzu so'z limiti yangilandi: {value}\n\n<i>Botni restart bering.</i>",
+                reply_markup=back_to_settings,
+                parse_mode="HTML"
+            )
             await state.clear()
         else:
             await message.answer("Xatolik yuz berdi", reply_markup=back_to_settings)

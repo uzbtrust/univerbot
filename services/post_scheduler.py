@@ -199,21 +199,26 @@ class PostScheduler:
         initial_sleep = 60 - now.second
         await asyncio.sleep(initial_sleep)
 
+        last_processed_minute = None
+
         while self.running and not stop_event.is_set():
-            loop_start = datetime.now(self.tz)
-            try:
-                await self.process_scheduled_posts()
-            except Exception as e:
-                logger.error(f"Error in scheduler loop: {e}", exc_info=True)
+            current_minute = datetime.now(self.tz).strftime("%H:%M")
 
-            after = datetime.now(self.tz)
-            elapsed = (after - loop_start).total_seconds()
-            sleep_for = max(0, 60 - elapsed)
+            if current_minute != last_processed_minute:
+                last_processed_minute = current_minute
+                asyncio.create_task(self._safe_process_posts(current_minute))
 
             try:
-                await asyncio.wait_for(stop_event.wait(), timeout=sleep_for)
+                await asyncio.wait_for(stop_event.wait(), timeout=1)
             except asyncio.TimeoutError:
                 pass
+
+    async def _safe_process_posts(self, minute: str):
+        try:
+            logger.info(f"⏰ Processing posts for {minute}")
+            await self.process_scheduled_posts()
+        except Exception as e:
+            logger.error(f"Error processing posts for {minute}: {e}", exc_info=True)
 
     def stop(self):
         self.running = False

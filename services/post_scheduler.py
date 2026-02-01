@@ -18,6 +18,9 @@ class PostScheduler:
         self.bot = bot
         self.running = False
         self.tz = ZoneInfo(TIMEZONE)
+        self.post_queue = asyncio.Queue()
+        self.worker_count = 3
+        self.workers_started = False
 
     async def get_all_scheduled_posts(self):
         current_time = datetime.now(self.tz).strftime("%H:%M")
@@ -172,28 +175,37 @@ class PostScheduler:
             posts = await self.get_all_scheduled_posts()
 
             if posts:
-                logger.info(f"📬 Processing {len(posts)} scheduled posts")
+                logger.info(f"📬 Adding {len(posts)} posts to queue (current queue size: {self.post_queue.qsize()})")
 
-                tasks = []
                 for post in posts:
-                    tasks.append(self.send_post(post))
+                    await self.post_queue.put(post)
 
-                    if len(tasks) >= 5:
-                        await asyncio.gather(*tasks, return_exceptions=True)
-                        tasks = []
-                        await asyncio.sleep(1)
-
-                if tasks:
-                    await asyncio.gather(*tasks, return_exceptions=True)
-
-                logger.info(f"✅ Completed processing {len(posts)} posts")
+                logger.info(f"✅ Added {len(posts)} posts to queue")
 
         except Exception as e:
             logger.error(f"Error processing scheduled posts: {e}", exc_info=True)
 
+    async def worker(self, worker_id: int, stop_event: asyncio.Event):
+        logger.info(f"🔧 Worker {worker_id} started")
+        while self.running and not stop_event.is_set():
+            try:
+                post = await asyncio.wait_for(self.post_queue.get(), timeout=1.0)
+                await self.send_post(post)
+                self.post_queue.task_done()
+                await asyncio.sleep(0.5)
+            except asyncio.TimeoutError:
+                continue
+            except Exception as e:
+                logger.error(f"Worker {worker_id} error: {e}", exc_info=True)
+        logger.info(f"🔧 Worker {worker_id} stopped")
+
     async def run(self, stop_event: asyncio.Event):
         self.running = True
         logger.info("🚀 Post scheduler started")
+
+        for i in range(self.worker_count):
+            asyncio.create_task(self.worker(i + 1, stop_event))
+        logger.info(f"🔧 Started {self.worker_count} workers")
 
         now = datetime.now(self.tz)
         initial_sleep = 60 - now.second

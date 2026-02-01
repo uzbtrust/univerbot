@@ -116,6 +116,7 @@ bot_settings_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='💳 To\'lov sozlamalari', callback_data='settings_payment')],
     [InlineKeyboardButton(text='📊 Limitlar', callback_data='settings_limits')],
     [InlineKeyboardButton(text='🖼️ Rasm rejimi', callback_data='settings_image')],
+    [InlineKeyboardButton(text='👥 Adminlar sozlamasi', callback_data='settings_admins')],
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='admin_panel')]
 ])
 
@@ -134,9 +135,36 @@ limits_settings_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='📝 Premium post limiti', callback_data='edit_max_posts_premium')],
     [InlineKeyboardButton(text='📢 Free kanal limiti', callback_data='edit_max_channels_free')],
     [InlineKeyboardButton(text='📢 Premium kanal limiti', callback_data='edit_max_channels_premium')],
+    [InlineKeyboardButton(text='📝 Free mavzu so\'z limiti', callback_data='edit_max_theme_words_free')],
+    [InlineKeyboardButton(text='📝 Premium mavzu so\'z limiti', callback_data='edit_max_theme_words_premium')],
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='admin_settings')]
 ])
 
 back_to_settings = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='admin_settings')]
 ])
+
+back_to_admin_settings = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='◀️ Orqaga', callback_data='settings_admins')]
+])
+
+
+def build_admin_settings_keyboard(admin1_active: bool, admin2_active: bool, admin2_id: int = 0):
+    admin1_status = "✅" if admin1_active else "❌"
+    admin2_status = "✅" if admin2_active else "❌"
+    admin2_text = f"Admin 2: {admin2_id}" if admin2_id else "Admin 2: o'rnatilmagan"
+
+    keyboard = [
+        [InlineKeyboardButton(text=f'{admin1_status} Admin 1 (asosiy)', callback_data='toggle_admin1')],
+        [InlineKeyboardButton(text=f'{admin2_status} {admin2_text}', callback_data='toggle_admin2')],
+        [InlineKeyboardButton(text='✏️ Admin 2 ni o\'zgartirish', callback_data='edit_admin2')],
+        [InlineKeyboardButton(text='◀️ Orqaga', callback_data='admin_settings')]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def build_cheque_keyboard(cheque_id: int):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='✅ Qabul qilish', callback_data=f'approve:{cheque_id}'),
+         InlineKeyboardButton(text='❌ Rad etish', callback_data=f'reject:{cheque_id}')]
+    ])

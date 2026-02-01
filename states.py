@@ -44,6 +44,10 @@ class AdminPanel(StatesGroup):
     EDIT_MAX_POSTS_PREMIUM = State()
     EDIT_MAX_CHANNELS_FREE = State()
     EDIT_MAX_CHANNELS_PREMIUM = State()
+    EDIT_MAX_THEME_WORDS_FREE = State()
+    EDIT_MAX_THEME_WORDS_PREMIUM = State()
+    EDIT_SUPER_ADMIN2 = State()
+    WAITING_ADMIN2_FORWARD = State()
 
 class DeleteChannel(StatesGroup):
     CONFIRM_DELETE = State()

@@ -68,8 +68,8 @@ class BotManager:
         self.dp.callback_query.register(premium_sub.weekly, F.data == "weekly")
         self.dp.callback_query.register(premium_sub.day15, F.data == "day15")
         self.dp.callback_query.register(premium_sub.monthly, F.data == "monthly")
-        self.dp.callback_query.register(premium_sub.approving, F.data == "approve")
-        self.dp.callback_query.register(premium_sub.rejecting, F.data == "reject")
+        self.dp.callback_query.register(premium_sub.approving, F.data.startswith("approve"))
+        self.dp.callback_query.register(premium_sub.rejecting, F.data.startswith("reject"))
 
         self.dp.callback_query.register(channel.admin_confirm_yes, F.data == "admin_yes")
         self.dp.callback_query.register(channel.admin_confirm_no, F.data == "admin_no")
@@ -99,8 +99,14 @@ class BotManager:
             "edit_card_number", "edit_card_name", "edit_card_surname",
             "edit_weekly_price", "edit_day15_price", "edit_monthly_price",
             "edit_max_posts_free", "edit_max_posts_premium",
-            "edit_max_channels_free", "edit_max_channels_premium"
+            "edit_max_channels_free", "edit_max_channels_premium",
+            "edit_max_theme_words_free", "edit_max_theme_words_premium"
         ]))
+
+        self.dp.callback_query.register(admin_panel.show_admin_settings, F.data == "settings_admins")
+        self.dp.callback_query.register(admin_panel.toggle_admin1, F.data == "toggle_admin1")
+        self.dp.callback_query.register(admin_panel.toggle_admin2, F.data == "toggle_admin2")
+        self.dp.callback_query.register(admin_panel.request_edit_admin2, F.data == "edit_admin2")
 
         self.dp.callback_query.register(channel_management.show_channels_list, F.data == "manage_channels")
         self.dp.callback_query.register(channel_management.confirm_delete_channel, F.data.startswith("delete_ch:"))
@@ -158,6 +164,9 @@ class BotManager:
         self.dp.message.register(admin_panel.process_edit_posts_limit, AdminPanel.EDIT_MAX_POSTS_PREMIUM)
         self.dp.message.register(admin_panel.process_edit_channels_limit, AdminPanel.EDIT_MAX_CHANNELS_FREE)
         self.dp.message.register(admin_panel.process_edit_channels_limit, AdminPanel.EDIT_MAX_CHANNELS_PREMIUM)
+        self.dp.message.register(admin_panel.process_edit_theme_words_limit, AdminPanel.EDIT_MAX_THEME_WORDS_FREE)
+        self.dp.message.register(admin_panel.process_edit_theme_words_limit, AdminPanel.EDIT_MAX_THEME_WORDS_PREMIUM)
+        self.dp.message.register(admin_panel.process_edit_admin2, AdminPanel.EDIT_SUPER_ADMIN2)
 
         self.dp.message.register(channel_management.process_new_time, EditChannelPost.EDIT_TIME)
         self.dp.message.register(channel_management.process_new_theme, EditChannelPost.EDIT_THEME)

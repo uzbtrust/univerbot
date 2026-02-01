@@ -18,9 +18,10 @@ class PostScheduler:
         self.bot = bot
         self.running = False
         self.tz = ZoneInfo(TIMEZONE)
-        self.post_queue = asyncio.Queue()
+        self.post_queue = asyncio.PriorityQueue()
         self.worker_count = 3
         self.workers_started = False
+        self.post_counter = 0
 
     async def get_all_scheduled_posts(self):
         current_time = datetime.now(self.tz).strftime("%H:%M")
@@ -175,12 +176,16 @@ class PostScheduler:
             posts = await self.get_all_scheduled_posts()
 
             if posts:
-                logger.info(f"📬 Adding {len(posts)} posts to queue (current queue size: {self.post_queue.qsize()})")
+                premium_count = sum(1 for p in posts if p['is_premium'])
+                free_count = len(posts) - premium_count
+                logger.info(f"📬 Adding {len(posts)} posts to queue (Premium: {premium_count}, Free: {free_count}, Queue: {self.post_queue.qsize()})")
 
                 for post in posts:
-                    await self.post_queue.put(post)
+                    self.post_counter += 1
+                    priority = (post['priority'], self.post_counter, post)
+                    await self.post_queue.put(priority)
 
-                logger.info(f"✅ Added {len(posts)} posts to queue")
+                logger.info(f"✅ Added {len(posts)} posts - Premium first!")
 
         except Exception as e:
             logger.error(f"Error processing scheduled posts: {e}", exc_info=True)
@@ -189,7 +194,10 @@ class PostScheduler:
         logger.info(f"🔧 Worker {worker_id} started")
         while self.running and not stop_event.is_set():
             try:
-                post = await asyncio.wait_for(self.post_queue.get(), timeout=1.0)
+                priority_item = await asyncio.wait_for(self.post_queue.get(), timeout=1.0)
+                priority, counter, post = priority_item
+                post_type = "⭐ Premium" if post['is_premium'] else "📝 Free"
+                logger.debug(f"Worker {worker_id}: Processing {post_type} post for channel {post['channel_id']}")
                 await self.send_post(post)
                 self.post_queue.task_done()
                 await asyncio.sleep(0.5)

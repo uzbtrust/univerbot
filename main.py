@@ -1,12 +1,12 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import and_f, CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message
+from aiogram.types import Message, BotCommand
 from aiogram.fsm.context import FSMContext
 
-from config import BOT_TOKEN, SUPER_ADMIN1, LOG_LEVEL, LOG_FORMAT, MAX_POSTS_FREE, MAX_POSTS_PREMIUM
+from config import BOT_TOKEN, SUPER_ADMINS, SUPER_ADMIN1, LOG_LEVEL, LOG_FORMAT, MAX_POSTS_FREE, MAX_POSTS_PREMIUM
 from logging_config import configure_logging
 from functions.starting import greating
 from functions.callback_functions import chanelling, premium, back
@@ -38,7 +38,18 @@ class BotManager:
         self._stop_event = asyncio.Event()
 
     async def on_startup(self, bot: Bot):
-        db.add_superadmin(SUPER_ADMIN1)
+        # Barcha adminlarni database ga qo'shish
+        for admin_id in SUPER_ADMINS:
+            db.add_superadmin(admin_id)
+
+        # Bot commandlarini o'rnatish
+        commands = [
+            BotCommand(command="start", description="Botni ishga tushirish"),
+            BotCommand(command="channels", description="Kanallarni boshqarish"),
+            BotCommand(command="premium", description="Premium sotib olish"),
+            BotCommand(command="help", description="Yordam"),
+        ]
+        await bot.set_my_commands(commands)
 
         self.scheduler = PostScheduler(bot)
         asyncio.create_task(self.scheduler.run(stop_event=self._stop_event))
@@ -59,6 +70,9 @@ class BotManager:
         self.dp.shutdown.register(self.on_shutdown)
 
         self.dp.message.register(greating, CommandStart())
+        self.dp.message.register(channel_management.show_channels_list_cmd, Command("channels"))
+        self.dp.message.register(premium_sub.show_premium_cmd, Command("premium"))
+        self.dp.message.register(self.help_command, Command("help"))
 
         self.dp.callback_query.register(chanelling, F.data == "channel")
         self.dp.callback_query.register(premium, F.data == "premium")
@@ -183,6 +197,28 @@ class BotManager:
         )
 
         logger.info("All handlers registered successfully")
+
+    async def help_command(self, message: Message):
+        help_text = (
+            "<b>Yordam</b>\n\n"
+            "<b>Asosiy buyruqlar:</b>\n"
+            "/start - Botni ishga tushirish\n"
+            "/channels - Kanallarni boshqarish\n"
+            "/premium - Premium sotib olish\n"
+            "/help - Yordam\n\n"
+            "<b>Bot haqida:</b>\n"
+            "Bu bot orqali siz kanallaringizga avtomatik post yuborishingiz mumkin.\n\n"
+            "<b>Qanday ishlaydi:</b>\n"
+            "1. Kanalni botga biriktiring\n"
+            "2. Post vaqtini va mavzusini belgilang\n"
+            "3. Bot avtomatik ravishda post yaratib yuboradi\n\n"
+            "<b>Premium imkoniyatlari:</b>\n"
+            "• 15 tagacha post\n"
+            "• 3 ta kanal\n"
+            "• AI rasm yaratish\n"
+            "• Tezkor yordam"
+        )
+        await message.answer(help_text, parse_mode="HTML")
 
     async def start(self):
         try:

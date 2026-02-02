@@ -31,8 +31,34 @@ def get_env_str(key: str, default: str = None) -> str:
 
 BOT_TOKEN = get_env_str("BOT_TOKEN")
 
-SUPER_ADMIN1 = get_env_int("SUPER_ADMIN1")
-SUPER_ADMIN2 = get_env_int("SUPER_ADMIN2", 0)
+
+def get_all_super_admins() -> list:
+    """Avtomatik ravishda barcha SUPER_ADMIN larni topadi (.env dan)"""
+    admins = []
+    i = 1
+    while True:
+        admin_id = os.getenv(f"SUPER_ADMIN{i}")
+        if admin_id is None:
+            break
+        try:
+            admin_id_int = int(admin_id)
+            if admin_id_int > 0:
+                admins.append(admin_id_int)
+        except ValueError:
+            pass
+        i += 1
+    return admins
+
+
+SUPER_ADMINS = get_all_super_admins()
+
+if not SUPER_ADMINS:
+    print("❌ ERROR: At least one SUPER_ADMIN must be configured in .env file")
+    sys.exit(1)
+
+# Backward compatibility
+SUPER_ADMIN1 = SUPER_ADMINS[0] if len(SUPER_ADMINS) > 0 else 0
+SUPER_ADMIN2 = SUPER_ADMINS[1] if len(SUPER_ADMINS) > 1 else 0
 
 WEEKLY_PRICE = get_env_str("WEEKLY_PRICE", "5000")
 DAY15_PRICE = get_env_str("DAY15_PRICE", "10000")

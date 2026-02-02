@@ -5,13 +5,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram import Bot
 
 from states import Payment
-from keyboards.inline import non_premium, premium, cheque_check
+from keyboards.inline import non_premium, premium, cheque_check, premium_buy
 from utils.database import db
 from utils.helpers import format_payment_message, extract_user_id_from_caption
 from config import (
     MESSAGES, CARD_NUMBER, CARD_NAME, CARD_SURNAME,
     WEEKLY_PRICE, DAY15_PRICE, MONTHLY_PRICE,
-    SUPER_ADMIN1, SUPER_ADMIN2
+    SUPER_ADMINS
 )
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,34 @@ def _get_payment_message(price: str) -> str:
         card_name=CARD_NAME,
         card_surname=CARD_SURNAME
     )
+
+
+async def show_premium_cmd(message: Message):
+    """Handler for /premium command"""
+    try:
+        user_id = message.from_user.id
+
+        if db.is_premium_user(user_id):
+            await message.answer(
+                "Siz allaqachon premium foydalanuvchisiz! 👑",
+                parse_mode="HTML"
+            )
+            return
+
+        premium_text = MESSAGES["premium_features"].format(
+            weekly=WEEKLY_PRICE,
+            day15=DAY15_PRICE,
+            monthly=MONTHLY_PRICE
+        )
+
+        await message.answer(
+            premium_text,
+            reply_markup=premium_buy,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.error(f"Error in show_premium_cmd: {e}", exc_info=True)
+        await message.answer("Xatolik yuz berdi")
 
 
 async def _send_cheque_to_admin(
@@ -39,9 +67,7 @@ async def _send_cheque_to_admin(
             subscription_type
         )
 
-        admins_to_notify = [SUPER_ADMIN1]
-        if SUPER_ADMIN2 and SUPER_ADMIN2 != 0:
-            admins_to_notify.append(SUPER_ADMIN2)
+        admins_to_notify = SUPER_ADMINS
 
         success = False
         for admin_id in admins_to_notify:

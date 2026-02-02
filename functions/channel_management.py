@@ -96,6 +96,36 @@ async def show_channels_list(call: CallbackQuery):
         await call.answer("Xatolik yuz berdi", show_alert=True)
 
 
+async def show_channels_list_cmd(message: Message):
+    """Handler for /channels command"""
+    try:
+        user_id = message.from_user.id
+
+        is_premium = db.is_premium_user(user_id)
+
+        channels = db.get_user_channels(user_id, premium=is_premium)
+
+        if not channels:
+            await message.answer(
+                "Sizda hech qanday kanal yo'q.",
+                reply_markup=back_to_main
+            )
+            return
+
+        prefix = "p" if is_premium else "f"
+        keyboard = create_channels_list_keyboard(channels, prefix)
+
+        await message.answer(
+            "<b>Sizning kanallaringiz:</b>\n\n"
+            "Kerakli amalni tanlang:",
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.error(f"Error in show_channels_list_cmd: {e}", exc_info=True)
+        await message.answer("Xatolik yuz berdi")
+
+
 async def confirm_delete_channel(call: CallbackQuery, state: FSMContext):
     try:
         parts = call.data.split(":")

@@ -15,7 +15,11 @@ def validate_time_format(time_str: str) -> bool:
 
 
 def validate_word_count(text: str, max_words: int = 5) -> tuple[bool, int]:
-    words = text.split()
+    """So'z sonini tekshirish"""
+    if not text or not isinstance(text, str):
+        return False, 0
+
+    words = text.strip().split()
     word_count = len(words)
     return word_count <= max_words, word_count
 

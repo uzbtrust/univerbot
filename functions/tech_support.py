@@ -57,6 +57,15 @@ async def process_support_message(message: Message, state: FSMContext, bot: Bot)
             await state.clear()
             return
 
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                "Iltimos muammoyingizni matn shaklida yozing.\n"
+                "Rasm yoki stiker yuborish mumkin emas.",
+                reply_markup=p_back_to_main
+            )
+            return
+
         admin_message = (
             f"<b>TEXNIK YORDAM SO'ROVI</b>\n\n"
             f"Foydalanuvchi: {user_name}\n"

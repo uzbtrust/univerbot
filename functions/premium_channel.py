@@ -219,6 +219,13 @@ async def insert_time(message: Message, state: FSMContext):
         data = await state.get_data()
         current_post = data.get("current_post", 1)
 
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                "Iltimos faqat matn kiriting.\nFormat: HH:MM (masalan 09:30)"
+            )
+            return
+
         if not validate_time_format(message.text):
             await message.answer(
                 "Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
@@ -259,6 +266,13 @@ async def insert_theme(message: Message, state: FSMContext):
         data = await state.get_data()
         current_post = data.get("current_post", 1)
         post_count = data.get("post_count", 1)
+
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer(
+                f"Iltimos faqat matn kiriting.\nMavzu {MAX_THEME_WORDS_PREMIUM} so'zdan oshmasligi kerak."
+            )
+            return
 
         is_valid, word_count = validate_word_count(message.text, max_words=MAX_THEME_WORDS_PREMIUM)
         if not is_valid:

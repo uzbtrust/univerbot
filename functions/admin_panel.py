@@ -348,6 +348,11 @@ async def request_edit_value(call: CallbackQuery, state: FSMContext):
 
 async def process_edit_card_number(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer("Iltimos faqat matn kiriting (karta raqami)")
+            return
+
         value = message.text.strip().replace(" ", "")
 
         if not value.isdigit() or len(value) != 16:
@@ -373,6 +378,11 @@ async def process_edit_card_number(message: Message, state: FSMContext):
 
 async def process_edit_card_name(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer("Iltimos faqat matn kiriting (ism)")
+            return
+
         value = message.text.strip()
 
         if len(value) < 2 or len(value) > 50:
@@ -397,6 +407,11 @@ async def process_edit_card_name(message: Message, state: FSMContext):
 
 async def process_edit_card_surname(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer("Iltimos faqat matn kiriting (familiya)")
+            return
+
         value = message.text.strip()
 
         if len(value) < 2 or len(value) > 50:
@@ -421,6 +436,11 @@ async def process_edit_card_surname(message: Message, state: FSMContext):
 
 async def process_edit_price(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer("Iltimos faqat raqam kiriting")
+            return
+
         value = message.text.strip()
 
         if not value.isdigit():
@@ -453,6 +473,11 @@ async def process_edit_price(message: Message, state: FSMContext):
 
 async def process_edit_posts_limit(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer("Iltimos faqat raqam kiriting")
+            return
+
         value = message.text.strip()
 
         if not value.isdigit():
@@ -485,6 +510,11 @@ async def process_edit_posts_limit(message: Message, state: FSMContext):
 
 async def process_edit_channels_limit(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer("Iltimos faqat raqam kiriting")
+            return
+
         value = message.text.strip()
 
         if not value.isdigit():
@@ -517,6 +547,11 @@ async def process_edit_channels_limit(message: Message, state: FSMContext):
 
 async def process_edit_theme_words_limit(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer("Iltimos faqat raqam kiriting")
+            return
+
         value = message.text.strip()
 
         if not value.isdigit():

@@ -311,6 +311,13 @@ async def request_new_time(call: CallbackQuery, state: FSMContext):
 
 async def process_new_time(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer(
+                "Iltimos faqat matn kiriting.\nFormat: HH:MM (masalan 09:30)"
+            )
+            return
+
         if not validate_time_format(message.text):
             await message.answer(
                 "Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
@@ -383,6 +390,14 @@ async def process_new_theme(message: Message, state: FSMContext):
         is_premium = data.get("edit_is_premium")
 
         max_words = MAX_THEME_WORDS_PREMIUM if is_premium else MAX_THEME_WORDS_FREE
+
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer(
+                f"Iltimos faqat matn kiriting.\nMavzu {max_words} so'zdan oshmasligi kerak."
+            )
+            return
+
         is_valid, word_count = validate_word_count(message.text, max_words=max_words)
         if not is_valid:
             await message.answer(
@@ -526,6 +541,13 @@ async def process_add_post_time(message: Message, state: FSMContext):
     try:
         from config import MAX_THEME_WORDS_FREE, MAX_THEME_WORDS_PREMIUM
 
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                "Iltimos faqat matn kiriting.\nFormat: HH:MM (masalan 09:30)"
+            )
+            return
+
         if not validate_time_format(message.text):
             await message.answer(
                 "Vaqt noto'g'ri formatda. To'g'ri format: HH:MM (masalan 09:30)"
@@ -572,6 +594,14 @@ async def process_add_post_theme(message: Message, state: FSMContext):
         is_premium = data.get("add_post_is_premium")
 
         max_words = MAX_THEME_WORDS_PREMIUM if is_premium else MAX_THEME_WORDS_FREE
+
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                f"Iltimos faqat matn kiriting.\nMavzu {max_words} so'zdan oshmasligi kerak."
+            )
+            return
+
         is_valid, word_count = validate_word_count(message.text, max_words=max_words)
         if not is_valid:
             await message.answer(

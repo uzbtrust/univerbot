@@ -175,6 +175,13 @@ async def change_time(call: CallbackQuery, state: FSMContext):
 
 async def process_new_time(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                "Iltimos faqat matn kiriting.\nFormat: HH:MM (masalan 09:30)"
+            )
+            return
+
         data = await state.get_data()
         channel_id = data.get("channel_id")
         post_num = int(data.get("post_num"))
@@ -241,6 +248,13 @@ async def change_theme(call: CallbackQuery, state: FSMContext):
 
 async def process_new_theme(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                f"Iltimos faqat matn kiriting.\nMavzu {MAX_THEME_WORDS_FREE} so'zdan oshmasligi kerak."
+            )
+            return
+
         data = await state.get_data()
         channel_id = data.get("channel_id")
         post_num = int(data.get("post_num"))
@@ -319,6 +333,13 @@ async def change_premium_time(call: CallbackQuery, state: FSMContext):
 
 async def process_new_premium_time(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                "Iltimos faqat matn kiriting.\nFormat: HH:MM (masalan 09:30)"
+            )
+            return
+
         data = await state.get_data()
         channel_id = data.get("channel_id")
         post_num = int(data.get("post_num"))
@@ -385,6 +406,13 @@ async def change_premium_theme(call: CallbackQuery, state: FSMContext):
 
 async def process_new_premium_theme(message: Message, state: FSMContext):
     try:
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                f"Iltimos faqat matn kiriting.\nMavzu {MAX_THEME_WORDS_PREMIUM} so'zdan oshmasligi kerak."
+            )
+            return
+
         data = await state.get_data()
         channel_id = data.get("channel_id")
         post_num = int(data.get("post_num"))

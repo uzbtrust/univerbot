@@ -344,14 +344,15 @@ async def save_post_to_database(event, state: FSMContext, with_image: str = 'no'
             return
 
         try:
-            # Database ga saqlash
+            # Database ga saqlash (yangi post - 24h tekshiruvi kerak emas)
             db.update_channel_post(
                 channel_id=channel_id,
                 post_num=post_number,
                 time=post_time,
                 theme=post_theme,
                 premium=is_premium,
-                with_image=with_image
+                with_image=with_image,
+                skip_24h_check=True  # Yangi post qo'shishda 24h cheklovi yo'q
             )
 
             success_msg = (

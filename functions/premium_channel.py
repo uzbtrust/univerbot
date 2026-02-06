@@ -307,12 +307,8 @@ async def insert_theme(message: Message, state: FSMContext):
             )
             await state.set_state(PremiumChannel.IMAGE_TOGGLE)
         else:
-            try:
-                db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image='no')
-            except ValueError as ve:
-                await message.answer(str(ve), reply_markup=p_back_to_main)
-                await state.clear()
-                return
+            # Yangi kanal qo'shilganda - 24h cheklovi kerak emas
+            db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image='no', skip_24h_check=True)
 
             if current_post < post_count:
                 await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -365,12 +361,8 @@ async def handle_premium_image_toggle(call: CallbackQuery, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_has_image": has_image})
 
-        try:
-            db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image=has_image)
-        except ValueError as ve:
-            await call.message.answer(str(ve), reply_markup=p_back_to_main)
-            await state.clear()
-            return
+        # Yangi kanal qo'shilganda - 24h cheklovi kerak emas
+        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image=has_image, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)

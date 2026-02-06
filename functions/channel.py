@@ -290,12 +290,8 @@ async def insert_theme(message: Message, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_theme": theme_value, "channel_id": channel_id})
 
-        try:
-            db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False)
-        except ValueError as ve:
-            await message.answer(str(ve), reply_markup=back_to_main)
-            await state.clear()
-            return
+        # Yangi kanal qo'shilganda - 24h cheklovi kerak emas
+        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -342,7 +338,8 @@ async def handle_image_toggle(call: CallbackQuery, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_has_image": has_image})
 
-        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False)
+        # Yangi kanal qo'shilganda - 24h cheklovi kerak emas
+        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)

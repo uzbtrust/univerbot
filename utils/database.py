@@ -271,10 +271,16 @@ class DatabaseManager:
             if last_dt and datetime.utcnow() - last_dt < timedelta(hours=24):
                 raise ValueError("Post vaqtini faqat 24 soatdan keyin o'zgartirish mumkin.")
 
-    def update_channel_post(self, channel_id: int, post_num: int, time: str, theme: str, premium: bool = False, with_image: str = 'no'):
+    def update_channel_post(self, channel_id: int, post_num: int, time: str, theme: str, premium: bool = False, with_image: str = 'no', skip_24h_check: bool = False):
+        """
+        Post qo'shish yoki yangilash.
+        skip_24h_check=True bo'lsa 24 soatlik cheklov tekshirilmaydi (yangi post qo'shish uchun)
+        """
         table = self._get_table_name(premium)
         try:
-            self._check_24h_restriction(channel_id, premium)
+            # Faqat mavjud postni o'zgartirganda 24h tekshiruvi
+            if not skip_24h_check:
+                self._check_24h_restriction(channel_id, premium)
 
             if premium:
                 self.execute_query(
@@ -287,7 +293,9 @@ class DatabaseManager:
                     (time, theme, channel_id)
                 )
 
-            self.update_last_edit_time(channel_id, datetime.utcnow().isoformat(), premium=premium)
+            # Faqat vaqt o'zgartirilganda last_edit_time yangilanadi
+            if not skip_24h_check:
+                self.update_last_edit_time(channel_id, datetime.utcnow().isoformat(), premium=premium)
         except ValueError:
             raise
         except Exception as e:

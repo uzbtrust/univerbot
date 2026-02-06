@@ -311,6 +311,29 @@ class DatabaseManager:
         )
         return result[0] if result else 0
 
+    def count_channel_posts(self, channel_id: int, premium: bool = False) -> int:
+        """Kanalda mavjud postlar sonini hisoblash"""
+        channel_data = self.get_channel_by_id(channel_id, premium)
+        if not channel_data:
+            return 0
+
+        max_posts = 15 if premium else 3
+        count = 0
+
+        for i in range(1, max_posts + 1):
+            # channel jadvalida: user_id, id, post1, theme1, post2, theme2, ...
+            # premium_channel jadvalida: user_id, id, post1, theme1, post2, theme2, ..., image1, image2, ...
+            post_idx = 2 + (i - 1) * 2  # post1 = index 2, post2 = index 4, ...
+
+            if post_idx < len(channel_data) and channel_data[post_idx] is not None:
+                count += 1
+
+        return count
+
+    def is_premium(self, user_id: int) -> bool:
+        """is_premium_user aliasi - qulaylik uchun"""
+        return self.is_premium_user(user_id)
+
     def get_total_users(self) -> int:
         result = self.execute_query(
             "SELECT COUNT(*) FROM users",

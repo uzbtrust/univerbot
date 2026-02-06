@@ -9,7 +9,7 @@ from keyboards.reply import channel_button
 from utils.database import db
 from utils.validators import validate_time_format, validate_word_count
 from utils.helpers import get_post_number_from_text
-from config import MAX_POSTS_FREE, MAX_THEME_WORDS_FREE
+from config import MAX_POSTS_FREE, MAX_THEME_WORDS_FREE, MAX_CHANNELS_FREE
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +38,12 @@ async def requesting_id(call: CallbackQuery, state: FSMContext):
         except Exception:
             pass
 
-        user_channels = db.get_user_channels(user_id, premium=False)
-        if user_channels:
+        # Kanal limiti tekshiruvi
+        channel_count = db.count_user_channels(user_id, premium=False)
+        if channel_count >= MAX_CHANNELS_FREE:
             await call.message.answer(
-                'Siz allaqachon kanalingizni qo\'shgansiz.',
+                f'⚠️ Siz maksimum {MAX_CHANNELS_FREE} ta kanal qo\'shishingiz mumkin.\n\n'
+                f'Premium foydalanuvchi bo\'lsangiz, ko\'proq kanal qo\'shishingiz mumkin.',
                 reply_markup=back_to_main
             )
             return

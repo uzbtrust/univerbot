@@ -17,11 +17,12 @@ from functions import my_chann
 from functions import admin_panel
 from functions import channel_management
 from functions import tech_support
+from functions import add_post
 from states import (
     Channel, PremiumChannel, Payment,
     ChangeTimeState, ChangeThemeState,
     ChangeTimePremiumState, ChangeThemePremiumState,
-    AdminPanel, DeleteChannel, EditChannelPost, TechnicalSupport
+    AdminPanel, DeleteChannel, EditChannelPost, TechnicalSupport, AddPost
 )
 from utils.database import db
 from services.post_scheduler import PostScheduler
@@ -78,6 +79,10 @@ class BotManager:
         self.dp.callback_query.register(premium, F.data == "premium")
         self.dp.callback_query.register(back, F.data == "sub_back")
         self.dp.callback_query.register(greating, F.data.in_(["back", "p_back"]))
+
+        # Post qo'shish handlerlari
+        self.dp.callback_query.register(add_post.show_channels_for_post, F.data == "add_post")
+        self.dp.callback_query.register(add_post.select_channel_for_post, F.data.startswith("select_ch:"))
 
         self.dp.callback_query.register(premium_sub.weekly, F.data == "weekly")
         self.dp.callback_query.register(premium_sub.day15, F.data == "day15")
@@ -156,6 +161,15 @@ class BotManager:
         self.dp.message.register(premium_sub.weekly_check, Payment.CHEQUE_WEEKLY)
         self.dp.message.register(premium_sub.day15_check, Payment.CHEQUE_DAY15)
         self.dp.message.register(premium_sub.monthly_check, Payment.CHEQUE_MONTHLY)
+
+        # AddPost state handlerlari
+        self.dp.message.register(add_post.insert_post_time, AddPost.POST_TIME)
+        self.dp.message.register(add_post.insert_post_theme, AddPost.POST_THEME)
+        self.dp.callback_query.register(
+            add_post.handle_image_toggle,
+            AddPost.IMAGE_TOGGLE,
+            F.data.in_(["p_image_yes", "p_image_no"])
+        )
 
         self.dp.message.register(my_chann.process_new_time, ChangeTimeState.waiting_for_time)
         self.dp.message.register(my_chann.process_new_theme, ChangeThemeState.waiting_for_theme)

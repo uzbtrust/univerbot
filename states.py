@@ -61,3 +61,11 @@ class EditChannelPost(StatesGroup):
 
 class TechnicalSupport(StatesGroup):
     WAITING_MESSAGE = State()
+
+
+class AddPost(StatesGroup):
+    """Post qo'shish uchun yangi state'lar"""
+    SELECT_CHANNEL = State()
+    POST_TIME = State()
+    POST_THEME = State()
+    IMAGE_TOGGLE = State()

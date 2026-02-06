@@ -2,16 +2,38 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from config import WEEKLY_PRICE, DAY15_PRICE, MONTHLY_PRICE
 
+# Oddiy foydalanuvchi uchun bosh menyu
 non_premium = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='📢 Kanal biriktirish', callback_data='channel')],
-    [InlineKeyboardButton(text='⚙️ Kanallarni boshqarish', callback_data='manage_channels')],
+    [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
+    [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
     [InlineKeyboardButton(text='⭐ Premium sotib olish', callback_data='premium')]
 ])
 
+# Premium foydalanuvchi uchun bosh menyu
 premium = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='💎 Kanal biriktirish', callback_data='channel')],
-    [InlineKeyboardButton(text='⚙️ Kanallarni boshqarish', callback_data='manage_channels')],
+    [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
+    [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
     [InlineKeyboardButton(text='🛠️ Texnik yordam', callback_data='tech_support')]
+])
+
+# Superadmin (oddiy) uchun bosh menyu
+superadmin_main = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='📢 Kanal biriktirish', callback_data='channel')],
+    [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
+    [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
+    [InlineKeyboardButton(text='⭐ Premium sotib olish', callback_data='premium')],
+    [InlineKeyboardButton(text='👑 Admin Panel', callback_data='admin_panel')]
+])
+
+# Superadmin (premium) uchun bosh menyu
+superadmin_premium_main = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='💎 Kanal biriktirish', callback_data='channel')],
+    [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
+    [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
+    [InlineKeyboardButton(text='🛠️ Texnik yordam', callback_data='tech_support')],
+    [InlineKeyboardButton(text='👑 Admin Panel', callback_data='admin_panel')]
 ])
 
 premium_buy = InlineKeyboardMarkup(inline_keyboard=[
@@ -83,20 +105,6 @@ admin_panel = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='back')]
 ])
 
-superadmin_main = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='📢 Kanal biriktirish', callback_data='channel')],
-    [InlineKeyboardButton(text='⚙️ Kanallarni boshqarish', callback_data='manage_channels')],
-    [InlineKeyboardButton(text='⭐ Premium sotib olish', callback_data='premium')],
-    [InlineKeyboardButton(text='👑 Admin Panel', callback_data='admin_panel')]
-])
-
-superadmin_premium_main = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='💎 Kanal biriktirish', callback_data='channel')],
-    [InlineKeyboardButton(text='⚙️ Kanallarni boshqarish', callback_data='manage_channels')],
-    [InlineKeyboardButton(text='🛠️ Texnik yordam', callback_data='tech_support')],
-    [InlineKeyboardButton(text='👑 Admin Panel', callback_data='admin_panel')]
-])
-
 confirm_broadcast = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='✅ Tasdiqlash', callback_data='confirm_broadcast')],
     [InlineKeyboardButton(text='❌ Bekor qilish', callback_data='cancel_broadcast')]
@@ -142,3 +150,21 @@ limits_settings_menu = InlineKeyboardMarkup(inline_keyboard=[
 back_to_settings = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='admin_settings')]
 ])
+
+
+def build_channels_keyboard(channels, is_premium: bool):
+    """Kanal tanlash uchun keyboard yaratish"""
+    keyboard = []
+    for ch in channels:
+        channel_id = ch[1]
+        keyboard.append([
+            InlineKeyboardButton(
+                text=f"📢 Kanal {channel_id}",
+                callback_data=f"select_ch:{channel_id}:{'p' if is_premium else 'f'}"
+            )
+        ])
+
+    back_data = "p_back" if is_premium else "back"
+    keyboard.append([InlineKeyboardButton(text='🏠 Bosh menyu', callback_data=back_data)])
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)

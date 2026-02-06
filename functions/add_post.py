@@ -360,7 +360,7 @@ async def save_post_to_database(event, state: FSMContext, with_image: str = 'no'
                 f"📋 Post raqami: {post_number}\n"
                 f"⏰ Vaqt: {post_time}\n"
                 f"📝 Mavzu: {post_theme}\n"
-                f"🖼 Rasm: {'Ha' if with_image == 'yes' else 'Yo\\'q'}"
+                f'🖼 Rasm: {"Ha" if with_image == "yes" else "Yo\'q"}'
             )
 
             if isinstance(event, CallbackQuery):

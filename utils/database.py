@@ -380,9 +380,14 @@ class DatabaseManager:
             return []
 
         posts = []
-        for i in range(1, 16 if premium else 4):
-            post_time = channel_data[i * 2] if len(channel_data) > i * 2 else None
-            post_theme = channel_data[i * 2 + 1] if len(channel_data) > i * 2 + 1 else None
+        max_posts = 15 if premium else 3
+        # Jadval strukturasi: user_id(0), id(1), post1(2), theme1(3), post2(4), theme2(5), ...
+        for i in range(1, max_posts + 1):
+            post_idx = 2 + (i - 1) * 2  # post1=2, post2=4, post3=6, ...
+            theme_idx = post_idx + 1    # theme1=3, theme2=5, theme3=7, ...
+
+            post_time = channel_data[post_idx] if len(channel_data) > post_idx else None
+            post_theme = channel_data[theme_idx] if len(channel_data) > theme_idx else None
 
             if post_time and post_theme:
                 posts.append({

@@ -202,6 +202,15 @@ async def insert_post_time(message: Message, state: FSMContext):
         max_theme_words = data.get('max_theme_words', MAX_THEME_WORDS_FREE)
         post_number = data.get('post_number', 1)
 
+        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
+        if not message.text:
+            await message.answer(
+                "❌ Iltimos faqat matn kiriting.\n\n"
+                "Format: <b>HH:MM</b> (masalan: 09:30)",
+                parse_mode="HTML"
+            )
+            return
+
         # Vaqt formatini tekshirish
         if not validate_time_format(message.text):
             await message.answer(
@@ -251,6 +260,14 @@ async def insert_post_theme(message: Message, state: FSMContext):
         if not channel_id:
             await message.answer("Xatolik: Kanal topilmadi", reply_markup=back_kb)
             await state.clear()
+            return
+
+        # message.text None bo'lishi mumkin
+        if not message.text:
+            await message.answer(
+                "❌ Iltimos faqat matn kiriting.\n\n"
+                f"Mavzu {max_theme_words} so'zdan oshmasligi kerak."
+            )
             return
 
         # So'z sonini tekshirish

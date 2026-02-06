@@ -437,17 +437,17 @@ class DatabaseManager:
             )
 
     def get_next_available_post_num(self, channel_id: int, premium: bool = False) -> int:
+        """Bo'sh post raqamini topish"""
         max_posts = 15 if premium else 3
         channel_data = self.get_channel_by_id(channel_id, premium)
 
         if not channel_data:
             return 1
 
+        # Jadval strukturasi: user_id(0), id(1), post1(2), theme1(3), post2(4), theme2(5), ...
+        # post_idx = 2 + (i - 1) * 2
         for i in range(1, max_posts + 1):
-            if premium:
-                post_idx = 2 + (i - 1) * 3
-            else:
-                post_idx = 2 + (i - 1) * 2
+            post_idx = 2 + (i - 1) * 2  # post1=2, post2=4, post3=6, ...
 
             if post_idx >= len(channel_data) or channel_data[post_idx] is None:
                 return i

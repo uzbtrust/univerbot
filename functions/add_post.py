@@ -13,14 +13,20 @@ from config import MAX_POSTS_FREE, MAX_POSTS_PREMIUM, MAX_THEME_WORDS_FREE, MAX_
 logger = logging.getLogger(__name__)
 
 
-def build_channels_keyboard(channels, is_premium: bool):
+def build_channels_keyboard(channels, is_premium: bool, channel_titles: dict = None):
     """Kanal tanlash uchun keyboard yaratish"""
     keyboard = []
     for ch in channels:
         channel_id = ch[1]
+        # Agar kanal nomi mavjud bo'lsa ko'rsatamiz, aks holda ID ni
+        if channel_titles and channel_id in channel_titles:
+            display_name = channel_titles[channel_id][:25]  # 25 ta belgigacha
+        else:
+            display_name = f"ID: {channel_id}"
+
         keyboard.append([
             InlineKeyboardButton(
-                text=f"📢 Kanal {channel_id}",
+                text=f"📢 {display_name}",
                 callback_data=f"select_ch:{channel_id}:{'p' if is_premium else 'f'}"
             )
         ])
@@ -31,7 +37,7 @@ def build_channels_keyboard(channels, is_premium: bool):
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-async def show_channels_for_post(call: CallbackQuery, state: FSMContext):
+async def show_channels_for_post(call: CallbackQuery, state: FSMContext, bot: Bot = None):
     """
     Post qo'shish tugmasi bosilganda kanallar ro'yxatini ko'rsatish.
     Foydalanuvchining premium yoki oddiy kanallarini tekshiradi.
@@ -63,7 +69,17 @@ async def show_channels_for_post(call: CallbackQuery, state: FSMContext):
             )
             return
 
-        keyboard = build_channels_keyboard(channels, is_premium)
+        # Kanal nomlarini olishga harakat qilamiz
+        channel_titles = {}
+        if bot:
+            for ch in channels:
+                try:
+                    chat = await bot.get_chat(ch[1])
+                    channel_titles[ch[1]] = chat.title or f"ID: {ch[1]}"
+                except Exception:
+                    channel_titles[ch[1]] = f"ID: {ch[1]}"
+
+        keyboard = build_channels_keyboard(channels, is_premium, channel_titles)
 
         await call.message.answer(
             "📝 <b>Post qo'shish</b>\n\n"
@@ -79,7 +95,7 @@ async def show_channels_for_post(call: CallbackQuery, state: FSMContext):
         await call.answer("Xatolik yuz berdi", show_alert=True)
 
 
-async def select_channel_for_post(call: CallbackQuery, state: FSMContext):
+async def select_channel_for_post(call: CallbackQuery, state: FSMContext, bot: Bot = None):
     """
     Kanal tanlangandan keyin limitni tekshirish va vaqt so'rash.
     callback_data format: select_ch:{channel_id}:{p|f}
@@ -103,6 +119,15 @@ async def select_channel_for_post(call: CallbackQuery, state: FSMContext):
         user_id = call.from_user.id
         back_kb = p_back_to_main if is_premium else back_to_main
 
+        # Kanal nomini olishga harakat qilamiz
+        channel_name = f"ID: {channel_id}"
+        if bot:
+            try:
+                chat = await bot.get_chat(channel_id)
+                channel_name = chat.title or channel_name
+            except Exception:
+                pass
+
         # Post limitni tekshirish
         if is_premium:
             max_posts = MAX_POSTS_PREMIUM
@@ -125,23 +150,36 @@ async def select_channel_for_post(call: CallbackQuery, state: FSMContext):
             await state.clear()
             return
 
+        # Bo'sh post raqamini topish (o'chirilgan postlar o'rniga qo'shish uchun)
+        next_post_num = db.get_next_available_post_num(channel_id, premium=is_premium)
+        if next_post_num is None:
+            await call.message.answer(
+                f"⚠️ <b>Limitga yetdingiz!</b>\n\n"
+                f"Barcha post joylari to'lgan.",
+                reply_markup=back_kb,
+                parse_mode="HTML"
+            )
+            await state.clear()
+            return
+
         # State ga ma'lumotlarni saqlash
         await state.update_data(
             channel_id=channel_id,
             is_premium=is_premium,
             max_theme_words=max_theme_words,
-            post_number=current_posts + 1  # Yangi post raqami
+            post_number=next_post_num  # Keyingi bo'sh post raqami
         )
 
         await call.message.answer(
             f"📢 <b>Kanal tanlandi</b>\n\n"
-            f"Kanal ID: <code>{channel_id}</code>\n"
-            f"Mavjud postlar: {current_posts}/{max_posts}\n\n"
-            f"Iltimos {current_posts + 1}-post uchun vaqtni kiriting.\n"
+            f"📌 Kanal: <b>{channel_name}</b>\n"
+            f"📊 Mavjud postlar: {current_posts}/{max_posts}\n\n"
+            f"Iltimos {next_post_num}-post uchun vaqtni kiriting.\n"
             f"Format: <b>HH:MM</b> (masalan: 09:30)",
             reply_markup=back_kb,
             parse_mode="HTML"
         )
+        await state.update_data(channel_name=channel_name)
         await state.set_state(AddPost.POST_TIME)
 
     except Exception as e:
@@ -278,6 +316,7 @@ async def save_post_to_database(event, state: FSMContext, with_image: str = 'no'
         post_time = data.get('post_time')
         post_theme = data.get('post_theme')
         post_number = data.get('post_number', 1)
+        channel_name = data.get('channel_name', f"ID: {channel_id}")
 
         if not all([channel_id, post_time, post_theme]):
             if isinstance(event, CallbackQuery):
@@ -291,8 +330,8 @@ async def save_post_to_database(event, state: FSMContext, with_image: str = 'no'
             # Database ga saqlash
             db.update_channel_post(
                 channel_id=channel_id,
-                post_number=post_number,
-                post_time=post_time,
+                post_num=post_number,
+                time=post_time,
                 theme=post_theme,
                 premium=is_premium,
                 with_image=with_image
@@ -300,7 +339,7 @@ async def save_post_to_database(event, state: FSMContext, with_image: str = 'no'
 
             success_msg = (
                 f"✅ <b>Post muvaffaqiyatli qo'shildi!</b>\n\n"
-                f"📢 Kanal: <code>{channel_id}</code>\n"
+                f"📢 Kanal: <b>{channel_name}</b>\n"
                 f"📋 Post raqami: {post_number}\n"
                 f"⏰ Vaqt: {post_time}\n"
                 f"📝 Mavzu: {post_theme}\n"

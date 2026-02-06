@@ -64,7 +64,10 @@ async def requesting_id(call: CallbackQuery, state: FSMContext):
 
 async def getting_id(message: Message, state: FSMContext):
     try:
-        await message.delete()
+        try:
+            await message.delete()
+        except Exception:
+            pass
 
         if not message.forward_from_chat:
             await message.answer(
@@ -140,6 +143,8 @@ async def premium_admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot:
                     reply_markup=premium_channel_button,
                     parse_mode='HTML'
                 )
+                # State ni ADMIN_CONFIRM da qoldiramiz - select_post_number shu state da ishlaydi
+                await state.update_data(channel_id=channel_id)
                 logger.info(f"Premium channel {channel_id} added for user {user_id}")
             else:
                 await call.answer("Bot hali admin emas. Iltimos botni kanalda admin qiling.", show_alert=True)
@@ -183,16 +188,25 @@ async def select_post_number(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            await message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
-            await state.clear()
-            return
+            # Kanal topilmasa, user ning kanalini database dan olishga harakat qilamiz
+            channels = db.get_user_channels(user_id, premium=True)
+            if channels:
+                channel_id = channels[-1][1]  # Oxirgi qo'shilgan kanal ID si
+            else:
+                await message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
+                await state.clear()
+                return
 
         await state.update_data(post_count=post_count, current_post=1, channel_id=channel_id)
-        await message.answer("Iltimos 1-post uchun vaqtni kiriting (HH:MM)")
+        await message.answer(
+            "Iltimos 1-post uchun vaqtni kiriting (HH:MM)",
+            reply_markup=ReplyKeyboardRemove()
+        )
         await state.set_state(PremiumChannel.POST_TIME)
     except Exception as e:
         logger.error(f"Error in select_post_number: {e}", exc_info=True)
-        await message.answer("Xatolik yuz berdi")
+        await message.answer("Xatolik yuz berdi", reply_markup=p_back_to_main)
+        await state.clear()
 
 
 async def insert_time(message: Message, state: FSMContext):
@@ -215,9 +229,14 @@ async def insert_time(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            await message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
-            await state.clear()
-            return
+            # Kanal topilmasa, user ning kanalini database dan olishga harakat qilamiz
+            channels = db.get_user_channels(user_id, premium=True)
+            if channels:
+                channel_id = channels[-1][1]
+            else:
+                await message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
+                await state.clear()
+                return
 
         await state.update_data(**{f"post{current_post}_time": message.text, "channel_id": channel_id})
         await message.answer(
@@ -226,7 +245,8 @@ async def insert_time(message: Message, state: FSMContext):
         await state.set_state(PremiumChannel.POST_THEME)
     except Exception as e:
         logger.error(f"Error in insert_time: {e}", exc_info=True)
-        await message.answer("Xatolik yuz berdi")
+        await message.answer("Xatolik yuz berdi", reply_markup=p_back_to_main)
+        await state.clear()
 
 
 async def insert_theme(message: Message, state: FSMContext):
@@ -252,9 +272,14 @@ async def insert_theme(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            await message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
-            await state.clear()
-            return
+            # Kanal topilmasa, user ning kanalini database dan olishga harakat qilamiz
+            channels = db.get_user_channels(user_id, premium=True)
+            if channels:
+                channel_id = channels[-1][1]
+            else:
+                await message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
+                await state.clear()
+                return
 
         time_value = data.get(f"post{current_post}_time")
         theme_value = message.text
@@ -268,7 +293,12 @@ async def insert_theme(message: Message, state: FSMContext):
             )
             await state.set_state(PremiumChannel.IMAGE_TOGGLE)
         else:
-            db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image='no')
+            try:
+                db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image='no')
+            except ValueError as ve:
+                await message.answer(str(ve), reply_markup=p_back_to_main)
+                await state.clear()
+                return
 
             if current_post < post_count:
                 await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -279,7 +309,7 @@ async def insert_theme(message: Message, state: FSMContext):
                 await state.set_state(PremiumChannel.POST_TIME)
             else:
                 await message.answer(
-                    "Barcha vaqt va mavzular muvaffaqiyatli saqlandi.",
+                    "Barcha vaqt va mavzular muvaffaqiyatli saqlandi!",
                     reply_markup=p_back_to_main
                 )
                 await state.clear()
@@ -305,9 +335,14 @@ async def handle_premium_image_toggle(call: CallbackQuery, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            await call.message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
-            await state.clear()
-            return
+            # Kanal topilmasa, user ning kanalini database dan olishga harakat qilamiz
+            channels = db.get_user_channels(user_id, premium=True)
+            if channels:
+                channel_id = channels[-1][1]
+            else:
+                await call.message.answer("Xatolik: Kanal topilmadi", reply_markup=p_back_to_main)
+                await state.clear()
+                return
 
         time_value = data.get(f"post{current_post}_time")
         theme_value = data.get(f"post{current_post}_theme")
@@ -316,7 +351,12 @@ async def handle_premium_image_toggle(call: CallbackQuery, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_has_image": has_image})
 
-        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image=has_image)
+        try:
+            db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image=has_image)
+        except ValueError as ve:
+            await call.message.answer(str(ve), reply_markup=p_back_to_main)
+            await state.clear()
+            return
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -327,7 +367,7 @@ async def handle_premium_image_toggle(call: CallbackQuery, state: FSMContext):
             await state.set_state(PremiumChannel.POST_TIME)
         else:
             await call.message.answer(
-                "Barcha vaqt va mavzular muvaffaqiyatli saqlandi.",
+                "Barcha vaqt va mavzular muvaffaqiyatli saqlandi!",
                 reply_markup=p_back_to_main
             )
             await state.clear()

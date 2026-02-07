@@ -57,23 +57,19 @@ class PostScheduler:
                             'priority': 1
                         })
 
+        # Premium kanal jadvali strukturasi:
+        # user_id(0), id(1), post1(2), theme1(3), post2(4), theme2(5), ..., post15(30), theme15(31),
+        # image1(32), image2(33), ..., image15(46), with_image(47), last_edit_time(48)
         premium_channels = db.execute_query(
             """SELECT user_id, id,
-                      post1, theme1, image1,
-                      post2, theme2, image2,
-                      post3, theme3, image3,
-                      post4, theme4, image4,
-                      post5, theme5, image5,
-                      post6, theme6, image6,
-                      post7, theme7, image7,
-                      post8, theme8, image8,
-                      post9, theme9, image9,
-                      post10, theme10, image10,
-                      post11, theme11, image11,
-                      post12, theme12, image12,
-                      post13, theme13, image13,
-                      post14, theme14, image14,
-                      post15, theme15, image15
+                      post1, theme1, post2, theme2, post3, theme3,
+                      post4, theme4, post5, theme5, post6, theme6,
+                      post7, theme7, post8, theme8, post9, theme9,
+                      post10, theme10, post11, theme11, post12, theme12,
+                      post13, theme13, post14, theme14, post15, theme15,
+                      image1, image2, image3, image4, image5,
+                      image6, image7, image8, image9, image10,
+                      image11, image12, image13, image14, image15
                FROM premium_channel""",
             fetch_all=True
         )
@@ -83,15 +79,16 @@ class PostScheduler:
             channel_id = channel[1]
 
             for i in range(1, 16):
-                base_idx = 2 + (i - 1) * 3
-                post_time_idx = base_idx
-                post_theme_idx = base_idx + 1
-                post_image_idx = base_idx + 2
+                # post va theme indekslari: post1=2, theme1=3, post2=4, theme2=5, ...
+                post_time_idx = 2 + (i - 1) * 2
+                post_theme_idx = post_time_idx + 1
+                # image indekslari: image1=32, image2=33, ...
+                post_image_idx = 32 + (i - 1)
 
-                if post_image_idx < len(channel):
+                if post_theme_idx < len(channel):
                     post_time = channel[post_time_idx]
                     post_theme = channel[post_theme_idx]
-                    post_image = channel[post_image_idx] if channel[post_image_idx] else 'no'
+                    post_image = channel[post_image_idx] if post_image_idx < len(channel) and channel[post_image_idx] else 'no'
 
                     if post_time and post_theme and post_time == current_time:
                         scheduled_posts.append({

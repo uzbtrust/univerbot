@@ -9,7 +9,6 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Toshkent vaqt zonasi
 TZ = ZoneInfo("Asia/Tashkent")
 
 ALLOWED_TABLES = {"channel", "premium_channel"}
@@ -30,22 +29,18 @@ class DatabaseManager:
 
     def __init__(self):
         if self._initialized:
-            # Har safar database mavjudligini tekshirish
             self._ensure_database_exists()
             return
         self._initialized = True
         self._init_database()
 
     def _ensure_database_exists(self):
-        """Database fayli va jadvallar mavjudligini tekshirish"""
         try:
-            # Fayl mavjud va hajmi 0 dan katta ekanligini tekshirish
             if not os.path.exists(self._db_path) or os.path.getsize(self._db_path) == 0:
                 logger.warning("Database file is missing or empty, reinitializing...")
                 self._init_database()
                 return
 
-            # Jadvallar mavjudligini tekshirish
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
@@ -292,7 +287,6 @@ class DatabaseManager:
         if last_edit:
             try:
                 last_dt = datetime.fromisoformat(last_edit)
-                # Agar timezone yo'q bo'lsa, TZ qo'shamiz
                 if last_dt.tzinfo is None:
                     last_dt = last_dt.replace(tzinfo=TZ)
             except ValueError:
@@ -301,13 +295,8 @@ class DatabaseManager:
                 raise ValueError("Post vaqtini faqat 24 soatdan keyin o'zgartirish mumkin.")
 
     def update_channel_post(self, channel_id: int, post_num: int, time: str, theme: str, premium: bool = False, with_image: str = 'no', skip_24h_check: bool = False):
-        """
-        Post qo'shish yoki yangilash.
-        skip_24h_check=True bo'lsa 24 soatlik cheklov tekshirilmaydi (yangi post qo'shish uchun)
-        """
         table = self._get_table_name(premium)
         try:
-            # Faqat mavjud postni o'zgartirganda 24h tekshiruvi
             if not skip_24h_check:
                 self._check_24h_restriction(channel_id, premium)
 
@@ -322,7 +311,6 @@ class DatabaseManager:
                     (time, theme, channel_id)
                 )
 
-            # Faqat vaqt o'zgartirilganda last_edit_time yangilanadi
             if not skip_24h_check:
                 self.update_last_edit_time(channel_id, datetime.now(TZ).isoformat(), premium=premium)
         except ValueError:
@@ -349,20 +337,16 @@ class DatabaseManager:
         return result[0] if result else 0
 
     def count_channel_posts(self, channel_id: int, premium: bool = False) -> int:
-        """Kanalda mavjud postlar sonini hisoblash"""
         channel_data = self.get_channel_by_id(channel_id, premium)
         if not channel_data:
             return 0
 
-        # sqlite3.Row ni tuple ga aylantirish
         channel_tuple = tuple(channel_data)
         max_posts = 15 if premium else 3
         count = 0
 
         for i in range(1, max_posts + 1):
-            # channel jadvalida: user_id, id, post1, theme1, post2, theme2, ...
-            # premium_channel jadvalida: user_id, id, post1, theme1, post2, theme2, ..., image1, image2, ...
-            post_idx = 2 + (i - 1) * 2  # post1 = index 2, post2 = index 4, ...
+            post_idx = 2 + (i - 1) * 2
 
             if post_idx < len(channel_tuple) and channel_tuple[post_idx] is not None:
                 count += 1
@@ -370,7 +354,6 @@ class DatabaseManager:
         return count
 
     def is_premium(self, user_id: int) -> bool:
-        """is_premium_user aliasi - qulaylik uchun"""
         return self.is_premium_user(user_id)
 
     def get_total_users(self) -> int:
@@ -419,16 +402,14 @@ class DatabaseManager:
             logger.debug(f"get_channel_posts: No channel found for id={channel_id}, premium={premium}")
             return []
 
-        # sqlite3.Row ni tuple ga aylantirish (indeks bilan ishlash uchun)
         channel_tuple = tuple(channel_data)
         logger.debug(f"get_channel_posts: channel_id={channel_id}, premium={premium}, columns={len(channel_tuple)}")
 
         posts = []
         max_posts = 15 if premium else 3
-        # Jadval strukturasi: user_id(0), id(1), post1(2), theme1(3), post2(4), theme2(5), ...
         for i in range(1, max_posts + 1):
-            post_idx = 2 + (i - 1) * 2  # post1=2, post2=4, post3=6, ...
-            theme_idx = post_idx + 1    # theme1=3, theme2=5, theme3=7, ...
+            post_idx = 2 + (i - 1) * 2
+            theme_idx = post_idx + 1
 
             post_time = channel_tuple[post_idx] if len(channel_tuple) > post_idx else None
             post_theme = channel_tuple[theme_idx] if len(channel_tuple) > theme_idx else None
@@ -488,20 +469,16 @@ class DatabaseManager:
             )
 
     def get_next_available_post_num(self, channel_id: int, premium: bool = False) -> int:
-        """Bo'sh post raqamini topish"""
         max_posts = 15 if premium else 3
         channel_data = self.get_channel_by_id(channel_id, premium)
 
         if not channel_data:
             return 1
 
-        # sqlite3.Row ni tuple ga aylantirish
         channel_tuple = tuple(channel_data)
 
-        # Jadval strukturasi: user_id(0), id(1), post1(2), theme1(3), post2(4), theme2(5), ...
-        # post_idx = 2 + (i - 1) * 2
         for i in range(1, max_posts + 1):
-            post_idx = 2 + (i - 1) * 2  # post1=2, post2=4, post3=6, ...
+            post_idx = 2 + (i - 1) * 2
 
             if post_idx >= len(channel_tuple) or channel_tuple[post_idx] is None:
                 return i

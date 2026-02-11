@@ -38,8 +38,7 @@ async def requesting_id(call: CallbackQuery, state: FSMContext):
         except Exception:
             pass
 
-        # Kanal limiti tekshiruvi
-        channel_count = db.count_user_channels(user_id, premium=False)
+                channel_count = db.count_user_channels(user_id, premium=False)
         if channel_count >= MAX_CHANNELS_FREE:
             await call.message.answer(
                 f'⚠️ Siz maksimum {MAX_CHANNELS_FREE} ta kanal qo\'shishingiz mumkin.\n\n'
@@ -133,7 +132,6 @@ async def admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot: Bot):
                     "Kanal qo'shildi!\n\nKanalinggizga bir kunda nechta post tashlamoqchisiz?",
                     reply_markup=channel_button
                 )
-                # State ni ADMIN_CONFIRM da qoldiramiz - select_post_number shu state da ishlaydi
                 await state.update_data(channel_id=channel_id)
                 logger.info(f"Channel {channel_id} added for user {user_id}")
             else:
@@ -178,10 +176,9 @@ async def select_post_number(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            # Kanal topilmasa, user ning kanalini database dan olishga harakat qilamiz
             channels = db.get_user_channels(user_id, premium=False)
             if channels:
-                channel_id = channels[0][1]  # Birinchi kanal ID si
+                channel_id = channels[0][1]
             else:
                 await message.answer("Xatolik: Kanal topilmadi", reply_markup=back_to_main)
                 await state.clear()
@@ -209,7 +206,6 @@ async def insert_time(message: Message, state: FSMContext):
         data = await state.get_data()
         current_post = data.get("current_post", 1)
 
-        # message.text None bo'lishi mumkin (rasm, stiker va h.k.)
         if not message.text:
             await message.answer(
                 "Iltimos faqat matn kiriting.\nFormat: HH:MM (masalan 09:30)"
@@ -226,8 +222,7 @@ async def insert_time(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            # Kanal topilmasa, user ning kanalini database dan olishga harakat qilamiz
-            channels = db.get_user_channels(user_id, premium=False)
+                        channels = db.get_user_channels(user_id, premium=False)
             if channels:
                 channel_id = channels[0][1]
             else:
@@ -257,8 +252,7 @@ async def insert_theme(message: Message, state: FSMContext):
         current_post = data.get("current_post", 1)
         post_count = data.get("post_count", 1)
 
-        # message.text None bo'lishi mumkin
-        if not message.text:
+                if not message.text:
             await message.answer(
                 f"Iltimos faqat matn kiriting.\nMavzu {MAX_THEME_WORDS_FREE} so'zdan oshmasligi kerak."
             )
@@ -276,8 +270,7 @@ async def insert_theme(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            # Kanal topilmasa, user ning kanalini database dan olishga harakat qilamiz
-            channels = db.get_user_channels(user_id, premium=False)
+                        channels = db.get_user_channels(user_id, premium=False)
             if channels:
                 channel_id = channels[0][1]
             else:
@@ -290,8 +283,7 @@ async def insert_theme(message: Message, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_theme": theme_value, "channel_id": channel_id})
 
-        # Yangi kanal qo'shilganda - 24h cheklovi kerak emas
-        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
+                db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -338,8 +330,7 @@ async def handle_image_toggle(call: CallbackQuery, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_has_image": has_image})
 
-        # Yangi kanal qo'shilganda - 24h cheklovi kerak emas
-        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
+                db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)

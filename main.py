@@ -38,11 +38,9 @@ class BotManager:
         self._stop_event = asyncio.Event()
 
     async def on_startup(self, bot: Bot):
-        # Barcha adminlarni database ga qo'shish
         for admin_id in SUPER_ADMINS:
             db.add_superadmin(admin_id)
 
-        # Bot commandlarini o'rnatish
         commands = [
             BotCommand(command="start", description="Botni ishga tushirish"),
             BotCommand(command="channels", description="Kanallarni boshqarish"),
@@ -79,7 +77,6 @@ class BotManager:
         self.dp.callback_query.register(back, F.data == "sub_back")
         self.dp.callback_query.register(greating, F.data.in_(["back", "p_back"]))
 
-        # Post qo'shish handlerlari (asosiy menyudan)
         self.dp.callback_query.register(channel_management.show_channels_for_add_post, F.data == "add_post")
 
         self.dp.callback_query.register(premium_sub.weekly, F.data == "weekly")
@@ -159,8 +156,6 @@ class BotManager:
         self.dp.message.register(premium_sub.weekly_check, Payment.CHEQUE_WEEKLY)
         self.dp.message.register(premium_sub.day15_check, Payment.CHEQUE_DAY15)
         self.dp.message.register(premium_sub.monthly_check, Payment.CHEQUE_MONTHLY)
-
-        # AddPost state handlerlari o'chirildi - channel_management.py ishlatiladi
 
         self.dp.message.register(my_chann.process_new_time, ChangeTimeState.waiting_for_time)
         self.dp.message.register(my_chann.process_new_theme, ChangeThemeState.waiting_for_theme)

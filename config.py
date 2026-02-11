@@ -33,7 +33,6 @@ BOT_TOKEN = get_env_str("BOT_TOKEN")
 
 
 def get_all_super_admins() -> list:
-    """Avtomatik ravishda barcha SUPER_ADMIN larni topadi (.env dan)"""
     admins = []
     i = 1
     while True:
@@ -56,7 +55,6 @@ if not SUPER_ADMINS:
     print("❌ ERROR: At least one SUPER_ADMIN must be configured in .env file")
     sys.exit(1)
 
-# Backward compatibility
 SUPER_ADMIN1 = SUPER_ADMINS[0] if len(SUPER_ADMINS) > 0 else 0
 SUPER_ADMIN2 = SUPER_ADMINS[1] if len(SUPER_ADMINS) > 1 else 0
 

@@ -27,7 +27,6 @@ def _get_payment_message(price: str) -> str:
 
 
 async def show_premium_cmd(message: Message):
-    """Handler for /premium command"""
     try:
         user_id = message.from_user.id
 

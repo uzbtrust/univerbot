@@ -64,7 +64,6 @@ class TechnicalSupport(StatesGroup):
 
 
 class AddPost(StatesGroup):
-    """Post qo'shish uchun yangi state'lar"""
     SELECT_CHANNEL = State()
     POST_TIME = State()
     POST_THEME = State()

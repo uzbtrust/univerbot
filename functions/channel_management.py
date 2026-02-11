@@ -18,7 +18,6 @@ async def create_channels_list_keyboard(channels, action_prefix, bot: Bot = None
     for channel in channels:
         channel_id = channel[1]
 
-        # Kanal nomini olishga harakat qilish
         channel_name = f"Kanal {channel_id}"
         if bot:
             try:
@@ -27,7 +26,6 @@ async def create_channels_list_keyboard(channels, action_prefix, bot: Bot = None
             except Exception:
                 pass
 
-        # Nomni qisqartirish (tugmaga sig'ishi uchun)
         if len(channel_name) > 20:
             channel_name = channel_name[:17] + "..."
 
@@ -58,7 +56,6 @@ def create_edit_options_keyboard(channel_id, is_premium):
 
 
 def strip_html_tags(text: str) -> str:
-    """HTML teglarni olib tashlash"""
     if not text:
         return text
     return re.sub(r'<[^>]+>', '', text)
@@ -70,7 +67,7 @@ def create_posts_list_keyboard(posts, channel_id, action_type, is_premium):
 
     for post in posts:
         post_num = post['post_num']
-        theme = strip_html_tags(post['theme'])  # HTML teglarni olib tashlash
+        theme = strip_html_tags(post['theme'])
         time = post['time']
 
         button_text = f"{theme} - {time}"
@@ -113,7 +110,6 @@ async def show_channels_list(call: CallbackQuery, bot: Bot = None):
 
 
 async def show_channels_for_add_post(call: CallbackQuery, bot: Bot = None):
-    """Asosiy menudagi 'Post qo'shish' tugmasi uchun handler - kanallar ro'yxatini ko'rsatadi"""
     try:
         user_id = call.from_user.id
         is_premium = db.is_premium_user(user_id)
@@ -135,7 +131,6 @@ async def show_channels_for_add_post(call: CallbackQuery, bot: Bot = None):
 
         for ch in channels:
             channel_id = ch[1]
-            # Kanal nomini olishga harakat
             channel_name = f"ID: {channel_id}"
             if bot:
                 try:
@@ -166,7 +161,6 @@ async def show_channels_for_add_post(call: CallbackQuery, bot: Bot = None):
 
 
 async def show_channels_list_cmd(message: Message, bot: Bot = None):
-    """Handler for /channels command"""
     try:
         user_id = message.from_user.id
 

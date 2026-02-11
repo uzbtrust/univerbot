@@ -58,3 +58,7 @@ python main.py
 ## Muallif
 
 Abdurakhmonov Dostonbek
+
+---
+
+Made with ❤️ by uzbtrust

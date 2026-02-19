@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import random
+import hashlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
@@ -55,11 +56,18 @@ class GrokService:
             try:
                 logger.info(f"🔄 Attempt {attempt}/{max_attempts} - Calling Grok API...")
 
+                # Har safar unikal kontent yaratish uchun random element qo'shamiz
+                unique_id = hashlib.md5(f"{theme}{datetime.now().isoformat()}{random.randint(1, 999999)}".encode()).hexdigest()[:8]
+
                 system_prompt = (
                     f"Sen professional Telegram kanal kontenti yaratuvchi mutaxassissan. "
                     f"BUGUNGI SANA: {today_str}. "
                     f"Yangiliklar, sport, voqealar haqida yozganda FAQAT bugungi yoki so'nggi kunlardagi real ma'lumotlarni ishlatasan. "
-                    f"Eskilik ma'lumotlarni BERMA. Har doim so'ralgan formatda javob berasan."
+                    f"Eskilik ma'lumotlarni BERMA. Har doim so'ralgan formatda javob berasan. "
+                    f"MUHIM: Har safar MUTLAQO YANGI va OLDINGILARDAN FARQLI kontent yarat. "
+                    f"Bir xil iqtibos, fakt yoki ma'lumotni TAKRORLAMA. "
+                    f"Agar iqtibos so'ralsa - har safar BOSHQA shaxsdan yoki shu shaxsning BOSHQA iqtibosini yoz. "
+                    f"Xilma-xillik va originallik eng muhim! [UID:{unique_id}]"
                 )
 
                 response = await asyncio.to_thread(
@@ -69,7 +77,7 @@ class GrokService:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt}
                     ],
-                    temperature=0.7,
+                    temperature=1.0,
                     max_tokens=max_tokens
                 )
 

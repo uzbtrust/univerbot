@@ -111,9 +111,11 @@ QOIDALAR:
 
 MAVZU TURIGA QARAB:
 • Yangilik/Sport/Texnologiya → BUGUNGI sana va eng so'nggi real faktlar
-• Motivatsiya/Iqtibos → mashhur shaxs ismi va iqtibosi
+• Motivatsiya/Iqtibos → mashhur shaxs ismi va iqtibosi (HAR SAFAR BOSHQA iqtibos va BOSHQA shaxs!)
 • Ta'lim/Maslahat → aniq, foydali ma'lumot
-• Boshqa → qiziqarli fakt yoki maslahat"""
+• Boshqa → qiziqarli fakt yoki maslahat
+
+MUHIM: Har safar YANGI va TAKRORLANMAYDIGAN kontent yoz! Oldingi postlardagi iqtibos, fakt yoki ma'lumotni qaytarma."""
 )
 
 GROK_PROMPT_PREMIUM = get_env_str(
@@ -139,6 +141,8 @@ KONTENT SIFATI:
 • Motivatsiya → Mashhur shaxs, original iqtibos, kontekst
 • Biznes/Moliya → Raqamlar, foizlar, real misollar
 • Ta'lim → Qadamlar, amaliy maslahatlar
+
+MUHIM: Har safar MUTLAQO YANGI va TAKRORLANMAYDIGAN kontent yoz! Oldingi postlardagi iqtibos, fakt, raqam yoki ma'lumotni QAYTARMA. Agar iqtibos so'ralsa - har safar BOSHQA shaxs yoki shu shaxsning BOSHQA iqtibosini ishlat.
 
 Faqat tayyor post matnini ber, hech qanday izoh yoki savol qo'shma."""
 )

@@ -38,7 +38,7 @@ async def requesting_id(call: CallbackQuery, state: FSMContext):
         except Exception:
             pass
 
-                channel_count = db.count_user_channels(user_id, premium=False)
+        channel_count = db.count_user_channels(user_id, premium=False)
         if channel_count >= MAX_CHANNELS_FREE:
             await call.message.answer(
                 f'⚠️ Siz maksimum {MAX_CHANNELS_FREE} ta kanal qo\'shishingiz mumkin.\n\n'
@@ -222,7 +222,7 @@ async def insert_time(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-                        channels = db.get_user_channels(user_id, premium=False)
+            channels = db.get_user_channels(user_id, premium=False)
             if channels:
                 channel_id = channels[0][1]
             else:
@@ -252,7 +252,7 @@ async def insert_theme(message: Message, state: FSMContext):
         current_post = data.get("current_post", 1)
         post_count = data.get("post_count", 1)
 
-                if not message.text:
+        if not message.text:
             await message.answer(
                 f"Iltimos faqat matn kiriting.\nMavzu {MAX_THEME_WORDS_FREE} so'zdan oshmasligi kerak."
             )
@@ -270,7 +270,7 @@ async def insert_theme(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-                        channels = db.get_user_channels(user_id, premium=False)
+            channels = db.get_user_channels(user_id, premium=False)
             if channels:
                 channel_id = channels[0][1]
             else:
@@ -283,7 +283,7 @@ async def insert_theme(message: Message, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_theme": theme_value, "channel_id": channel_id})
 
-                db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
+        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -330,7 +330,7 @@ async def handle_image_toggle(call: CallbackQuery, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_has_image": has_image})
 
-                db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
+        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)

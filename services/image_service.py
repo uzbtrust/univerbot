@@ -5,9 +5,11 @@ import base64
 import httpx
 from typing import Optional
 from openai import AsyncOpenAI, OpenAIError, RateLimitError, APIConnectionError
-from config import GROK_API_KEY, GROK_BASE_URL, GROK_IMAGE_MODEL, GROK_IMAGE_PROMPT, GROK_TIMEOUT
+from aiolimiter import AsyncLimiter
+from config import GROK_API_KEY, GROK_BASE_URL, GROK_IMAGE_MODEL, GROK_IMAGE_PROMPT, GROK_TIMEOUT, IMAGE_RATE_LIMIT
 
 logger = logging.getLogger(__name__)
+image_limiter = AsyncLimiter(max_rate=IMAGE_RATE_LIMIT, time_period=60)
 
 
 class ImageService:
@@ -51,10 +53,11 @@ class ImageService:
             try:
                 logger.info(f"🔄 Image attempt {attempt}/{max_attempts}")
 
-                response = await self.client.images.generate(
-                    model=self.model,
-                    prompt=prompt
-                )
+                async with image_limiter:
+                    response = await self.client.images.generate(
+                        model=self.model,
+                        prompt=prompt
+                    )
 
                 image_data = response.data[0]
 

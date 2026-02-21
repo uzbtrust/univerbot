@@ -13,9 +13,12 @@ from config import (
     GROK_MAX_TOKENS_FREE, GROK_MAX_TOKENS_PREMIUM,
     TIMEZONE
 )
+from aiolimiter import AsyncLimiter
 from services.circuit_breaker import CircuitBreaker
+from config import GROK_RATE_LIMIT
 
 logger = logging.getLogger(__name__)
+grok_limiter = AsyncLimiter(max_rate=GROK_RATE_LIMIT, time_period=60)
 
 
 class GrokService:
@@ -74,15 +77,16 @@ class GrokService:
                     f"Xilma-xillik va originallik eng muhim! [UID:{unique_id}]"
                 )
 
-                response = await self.client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=1.0,
-                    max_tokens=max_tokens
-                )
+                async with grok_limiter:
+                    response = await self.client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=1.0,
+                        max_tokens=max_tokens
+                    )
 
                 generated_text = response.choices[0].message.content.strip()
                 self.circuit.record_success()

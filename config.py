@@ -101,6 +101,14 @@ SCHEDULER_MIN_WORKERS = get_env_int("SCHEDULER_MIN_WORKERS", 3)
 SCHEDULER_MAX_WORKERS = get_env_int("SCHEDULER_MAX_WORKERS", 10)
 SCHEDULER_SCALE_THRESHOLD = get_env_int("SCHEDULER_SCALE_THRESHOLD", 5)
 
+# Redis Configuration
+REDIS_URL = get_env_str("REDIS_URL", "redis://localhost:6379/0")
+
+# Rate Limiting
+GROK_RATE_LIMIT = get_env_int("GROK_RATE_LIMIT", 30)        # req/min
+IMAGE_RATE_LIMIT = get_env_int("IMAGE_RATE_LIMIT", 10)       # req/min
+TELEGRAM_RATE_LIMIT = get_env_int("TELEGRAM_RATE_LIMIT", 25)  # msg/sec
+
 GROK_PROMPT_FREE = get_env_str(
     "GROK_PROMPT_FREE",
     """Telegram post yoz. Mavzu: {user_words}

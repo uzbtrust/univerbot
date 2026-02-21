@@ -25,6 +25,7 @@ from states import (
 )
 from utils.database import db
 from services.post_scheduler import PostScheduler
+from services.tasks import broker, set_bot
 
 configure_logging(LOG_LEVEL)
 logger = logging.getLogger("bot")
@@ -41,6 +42,10 @@ class BotManager:
         for admin_id in SUPER_ADMINS:
             db.add_superadmin(admin_id)
 
+        # Taskiq broker va bot instance ni sozlash
+        set_bot(bot)
+        await broker.startup()
+
         commands = [
             BotCommand(command="start", description="Botni ishga tushirish"),
             BotCommand(command="channels", description="Kanallarni boshqarish"),
@@ -49,7 +54,7 @@ class BotManager:
         ]
         await bot.set_my_commands(commands)
 
-        self.scheduler = PostScheduler(bot)
+        self.scheduler = PostScheduler()
         asyncio.create_task(self.scheduler.run(stop_event=self._stop_event))
 
         await bot.send_message(chat_id=SUPER_ADMIN1, text="🚀 Bot va Post Scheduler ishga tushdi")
@@ -59,6 +64,9 @@ class BotManager:
         if self.scheduler:
             self._stop_event.set()
             self.scheduler.stop()
+
+        await broker.shutdown()
+        db.close_all()
 
         await bot.send_message(chat_id=SUPER_ADMIN1, text="🛑 Bot to'xtatildi")
         logger.info("Bot shutdown")

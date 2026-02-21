@@ -96,6 +96,11 @@ GROK_TIMEOUT = get_env_int("GROK_TIMEOUT", 120)
 GROK_MAX_TOKENS_FREE = get_env_int("GROK_MAX_TOKENS_FREE", 250)
 GROK_MAX_TOKENS_PREMIUM = get_env_int("GROK_MAX_TOKENS_PREMIUM", 400)
 
+# Worker Configuration
+SCHEDULER_MIN_WORKERS = get_env_int("SCHEDULER_MIN_WORKERS", 3)
+SCHEDULER_MAX_WORKERS = get_env_int("SCHEDULER_MAX_WORKERS", 10)
+SCHEDULER_SCALE_THRESHOLD = get_env_int("SCHEDULER_SCALE_THRESHOLD", 5)
+
 GROK_PROMPT_FREE = get_env_str(
     "GROK_PROMPT_FREE",
     """Telegram post yoz. Mavzu: {user_words}

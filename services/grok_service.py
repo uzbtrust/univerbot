@@ -5,7 +5,7 @@ import hashlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
-from openai import OpenAI, OpenAIError, RateLimitError, APIConnectionError
+from openai import AsyncOpenAI, OpenAIError, RateLimitError, APIConnectionError
 from config import (
     GROK_API_KEY, GROK_BASE_URL, GROK_TIMEOUT,
     GROK_MODEL_PREMIUM, GROK_MODEL_FREE,
@@ -13,16 +13,22 @@ from config import (
     GROK_MAX_TOKENS_FREE, GROK_MAX_TOKENS_PREMIUM,
     TIMEZONE
 )
+from services.circuit_breaker import CircuitBreaker
 
 logger = logging.getLogger(__name__)
 
 
 class GrokService:
     def __init__(self):
-        self.client = OpenAI(
+        self.client = AsyncOpenAI(
             api_key=GROK_API_KEY,
             base_url=GROK_BASE_URL,
             timeout=GROK_TIMEOUT
+        )
+        self.circuit = CircuitBreaker(
+            name="grok_api",
+            failure_threshold=5,
+            recovery_timeout=60.0
         )
 
     async def generate_post(self, theme: str, is_premium: bool = False) -> str:
@@ -38,14 +44,15 @@ class GrokService:
             prompt = GROK_PROMPT_FREE.format(user_words=theme, today=today_str)
             max_tokens = GROK_MAX_TOKENS_FREE
 
-        logger.info(f"🤖 Grok Generation Started")
-        logger.info(f"  Model: {model}")
-        logger.info(f"  Theme: '{theme}'")
-        logger.info(f"  Premium: {is_premium}")
-        logger.info(f"  Max tokens: {max_tokens}")
+        logger.info(f"🤖 Grok | Model: {model} | Theme: '{theme}' | Premium: {is_premium}")
 
         if not GROK_API_KEY or GROK_API_KEY == "YOUR_GROK_API_KEY_HERE":
             logger.warning("GROK_API_KEY not configured, using fallback message")
+            return f"📢 {theme}\n\nQiziqarli yangiliklar tez orada!"
+
+        # Circuit breaker tekshiruvi
+        if not self.circuit.can_execute():
+            logger.warning(f"Circuit OPEN, fallback: theme='{theme}'")
             return f"📢 {theme}\n\nQiziqarli yangiliklar tez orada!"
 
         max_attempts = 4
@@ -54,9 +61,6 @@ class GrokService:
 
         for attempt in range(1, max_attempts + 1):
             try:
-                logger.info(f"🔄 Attempt {attempt}/{max_attempts} - Calling Grok API...")
-
-                # Har safar unikal kontent yaratish uchun random element qo'shamiz
                 unique_id = hashlib.md5(f"{theme}{datetime.now().isoformat()}{random.randint(1, 999999)}".encode()).hexdigest()[:8]
 
                 system_prompt = (
@@ -70,8 +74,7 @@ class GrokService:
                     f"Xilma-xillik va originallik eng muhim! [UID:{unique_id}]"
                 )
 
-                response = await asyncio.to_thread(
-                    self.client.chat.completions.create,
+                response = await self.client.chat.completions.create(
                     model=model,
                     messages=[
                         {"role": "system", "content": system_prompt},
@@ -82,18 +85,21 @@ class GrokService:
                 )
 
                 generated_text = response.choices[0].message.content.strip()
-                logger.info(f"✅ Post generated successfully!")
-                logger.info(f"  Generated text: {generated_text[:100]}...")
+                self.circuit.record_success()
+                logger.info(f"✅ Post generated: {generated_text[:80]}...")
                 return generated_text
 
             except RateLimitError as e:
                 last_error = e
+                self.circuit.record_failure()
                 logger.warning(f"Rate limit: attempt {attempt}/{max_attempts}: {e}")
             except (APIConnectionError, OpenAIError) as e:
                 last_error = e
-                logger.warning(f"Transient Grok error: attempt {attempt}/{max_attempts}: {e}")
+                self.circuit.record_failure()
+                logger.warning(f"Grok error: attempt {attempt}/{max_attempts}: {e}")
             except Exception as e:
                 last_error = e
+                self.circuit.record_failure()
                 logger.error(f"Unexpected Grok error attempt {attempt}: {e}", exc_info=True)
 
             if attempt < max_attempts:

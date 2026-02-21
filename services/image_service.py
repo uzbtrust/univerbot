@@ -4,7 +4,7 @@ import random
 import base64
 import httpx
 from typing import Optional
-from openai import OpenAI, OpenAIError, RateLimitError, APIConnectionError
+from openai import AsyncOpenAI, OpenAIError, RateLimitError, APIConnectionError
 from config import GROK_API_KEY, GROK_BASE_URL, GROK_IMAGE_MODEL, GROK_IMAGE_PROMPT, GROK_TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class ImageService:
     def __init__(self):
-        self.client = OpenAI(
+        self.client = AsyncOpenAI(
             api_key=GROK_API_KEY,
             base_url=GROK_BASE_URL,
             timeout=GROK_TIMEOUT
@@ -20,12 +20,24 @@ class ImageService:
         self.prompt_template = GROK_IMAGE_PROMPT
         self.model = GROK_IMAGE_MODEL
 
+    def _validate_image_bytes(self, image_bytes: bytes) -> bool:
+        """Rasmni yaroqliligini tekshirish (JPEG/PNG/WebP magic bytes)."""
+        if not image_bytes or len(image_bytes) < 100:
+            logger.warning(f"Image too small: {len(image_bytes) if image_bytes else 0} bytes")
+            return False
+        if image_bytes[:2] == b'\xff\xd8':  # JPEG
+            return True
+        if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':  # PNG
+            return True
+        if image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP':  # WebP
+            return True
+        logger.warning(f"Invalid image format. First 20 bytes: {image_bytes[:20]}")
+        return False
+
     async def generate_image(self, post_content: str) -> Optional[bytes]:
         prompt = self.prompt_template.format(post_content=post_content)
 
-        logger.info(f"🎨 Image Generation Started")
-        logger.info(f"  Model: {self.model}")
-        logger.info(f"  Post content: {post_content[:100]}...")
+        logger.info(f"🎨 Image Generation Started | Model: {self.model}")
 
         if not GROK_API_KEY or GROK_API_KEY == "YOUR_GROK_API_KEY_HERE":
             logger.warning("GROK_API_KEY not configured, skipping image generation")
@@ -37,10 +49,9 @@ class ImageService:
 
         for attempt in range(1, max_attempts + 1):
             try:
-                logger.info(f"🔄 Attempt {attempt}/{max_attempts} - Calling Grok Image API...")
+                logger.info(f"🔄 Image attempt {attempt}/{max_attempts}")
 
-                response = await asyncio.to_thread(
-                    self.client.images.generate,
+                response = await self.client.images.generate(
                     model=self.model,
                     prompt=prompt
                 )
@@ -48,21 +59,25 @@ class ImageService:
                 image_data = response.data[0]
 
                 if hasattr(image_data, 'b64_json') and image_data.b64_json:
-                    logger.info(f"✅ Image generated successfully (base64 format)")
                     image_bytes = base64.b64decode(image_data.b64_json)
-                    logger.info(f"✅ Image decoded successfully ({len(image_bytes)} bytes)")
+                    if not self._validate_image_bytes(image_bytes):
+                        raise ValueError("Decoded base64 is not a valid image")
+                    logger.info(f"✅ Image decoded ({len(image_bytes)} bytes)")
                     return image_bytes
 
                 elif hasattr(image_data, 'url') and image_data.url:
                     image_url = image_data.url
-                    logger.info(f"✅ Image URL generated: {image_url[:80]}...")
-
                     async with httpx.AsyncClient() as client:
                         img_response = await client.get(image_url, timeout=30.0)
                         img_response.raise_for_status()
+                        content_type = img_response.headers.get('content-type', '')
+                        if not content_type.startswith('image/'):
+                            raise ValueError(f"Expected image content-type, got: {content_type}")
                         image_bytes = img_response.content
 
-                    logger.info(f"✅ Image downloaded successfully ({len(image_bytes)} bytes)")
+                    if not self._validate_image_bytes(image_bytes):
+                        raise ValueError(f"Downloaded data is not a valid image ({len(image_bytes)} bytes)")
+                    logger.info(f"✅ Image downloaded ({len(image_bytes)} bytes)")
                     return image_bytes
                 else:
                     raise ValueError("No image data (b64_json or url) in response")
@@ -85,7 +100,7 @@ class ImageService:
                 jitter = random.uniform(0, 0.25 * delay)
                 await asyncio.sleep(delay + jitter)
 
-        logger.error(f"All image generation attempts failed for post: {last_error}")
+        logger.error(f"All image generation attempts failed: {last_error}")
         return None
 
 

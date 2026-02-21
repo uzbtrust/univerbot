@@ -1,5 +1,7 @@
 import sqlite3
 import time
+import queue
+import threading
 import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -20,6 +22,7 @@ class DatabaseManager:
     _premium_cache: Dict[int, Tuple[bool, float]] = {}
     _cache_ttl_seconds: int = 300
     _cache_max_size: int = 10000
+    _pool_size: int = 5
 
     def __new__(cls):
         if cls._instance is None:
@@ -32,7 +35,21 @@ class DatabaseManager:
             self._ensure_database_exists()
             return
         self._initialized = True
+        self._pool = queue.Queue(maxsize=self._pool_size)
+        self._pool_lock = threading.Lock()
         self._init_database()
+        # Connection pool ni to'ldirish
+        for _ in range(self._pool_size):
+            conn = self._create_connection()
+            self._pool.put(conn)
+
+    def _create_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=5000;")
+        return conn
 
     def _ensure_database_exists(self):
         try:
@@ -127,6 +144,12 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_channel_user_id ON channel(user_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_premium_channel_user_id ON premium_channel(user_id);")
 
+            # Scheduler uchun vaqt ustunlari indexlari
+            for i in range(1, 4):
+                cursor.execute(f"CREATE INDEX IF NOT EXISTS idx_channel_post{i} ON channel(post{i});")
+            for i in range(1, 16):
+                cursor.execute(f"CREATE INDEX IF NOT EXISTS idx_premium_post{i} ON premium_channel(post{i});")
+
             self._add_column_if_not_exists(cursor, "channel", "with_image", "BOOLEAN DEFAULT 0")
             self._add_column_if_not_exists(cursor, "premium_channel", "with_image", "BOOLEAN DEFAULT 0")
 
@@ -154,8 +177,14 @@ class DatabaseManager:
 
     @contextmanager
     def get_connection(self):
-        conn = sqlite3.connect(self._db_path)
-        conn.row_factory = sqlite3.Row
+        conn = None
+        from_pool = False
+        try:
+            conn = self._pool.get(timeout=5.0)
+            from_pool = True
+        except (queue.Empty, AttributeError):
+            conn = self._create_connection()
+
         try:
             yield conn
         except Exception as e:
@@ -163,7 +192,23 @@ class DatabaseManager:
             logger.error(f"Database error: {e}")
             raise
         finally:
-            conn.close()
+            if conn:
+                try:
+                    if from_pool:
+                        self._pool.put_nowait(conn)
+                    else:
+                        conn.close()
+                except queue.Full:
+                    conn.close()
+
+    def close_all(self):
+        """Barcha connectionlarni yopish (shutdown uchun)."""
+        while not self._pool.empty():
+            try:
+                conn = self._pool.get_nowait()
+                conn.close()
+            except queue.Empty:
+                break
 
     def execute_query(self, query: str, params: tuple = (), fetch_one: bool = False, fetch_all: bool = False):
         with self.get_connection() as conn:

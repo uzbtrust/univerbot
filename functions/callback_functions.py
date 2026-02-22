@@ -19,7 +19,7 @@ async def chanelling(callback: CallbackQuery, state: FSMContext):
 
         user_id = callback.from_user.id
 
-        if db.is_premium_user(user_id):
+        if await db.is_premium_user(user_id):
             await premium_channel.requesting_id(callback, state)
         else:
             await channel.requesting_id(callback, state)
@@ -37,7 +37,7 @@ async def premium(callback: CallbackQuery):
         except Exception:
             pass
 
-        if db.is_premium_user(user_id):
+        if await db.is_premium_user(user_id):
             await callback.message.answer(
                 '<b>Siz allaqachon premium foydalanuvchisiz!</b>\n\n'
                 'Barcha premium imkoniyatlardan foydalanishingiz mumkin.',

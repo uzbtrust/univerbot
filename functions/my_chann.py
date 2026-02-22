@@ -27,13 +27,13 @@ async def _safe_delete(message) -> bool:
         return False
 
 
-def _build_channel_keyboard(channel_id: int, is_premium: bool = False):
+async def _build_channel_keyboard(channel_id: int, is_premium: bool = False):
     keyboard = []
     prefix = "change_time_premium" if is_premium else "change_time"
     theme_prefix = "change_theme_premium" if is_premium else "change_theme"
 
     max_posts = 15 if is_premium else 3
-    channel_data = db.get_channel_by_id(channel_id, premium=is_premium)
+    channel_data = await db.get_channel_by_id(channel_id, premium=is_premium)
 
     if not channel_data:
         return None
@@ -100,7 +100,7 @@ def _format_channel_info(channel_data, is_premium: bool = False) -> str:
 
 
 async def is_premium(call: CallbackQuery):
-    if db.is_premium_user(call.from_user.id):
+    if await db.is_premium_user(call.from_user.id):
         await premium_channel_list(call.message)
     else:
         await channel_list(call.message)
@@ -108,13 +108,13 @@ async def is_premium(call: CallbackQuery):
 
 async def premium_channel_list(message: Message):
     user_id = message.from_user.id
-    channels = db.get_user_channels(user_id, premium=True)
+    channels = await db.get_user_channels(user_id, premium=True)
 
     if channels:
         for channel in channels:
             channel_id = channel[1]
             response = _format_channel_info(channel, is_premium=True)
-            keyboard = _build_channel_keyboard(channel_id, is_premium=True)
+            keyboard = await _build_channel_keyboard(channel_id, is_premium=True)
 
             if keyboard:
                 await message.answer(response, reply_markup=keyboard, parse_mode="HTML")
@@ -129,13 +129,13 @@ async def premium_channel_list(message: Message):
 
 async def channel_list(message: Message):
     user_id = message.from_user.id
-    channels = db.get_user_channels(user_id, premium=False)
+    channels = await db.get_user_channels(user_id, premium=False)
 
     if channels:
         for channel in channels:
             channel_id = channel[1]
             response = _format_channel_info(channel, is_premium=False)
-            keyboard = _build_channel_keyboard(channel_id, is_premium=False)
+            keyboard = await _build_channel_keyboard(channel_id, is_premium=False)
 
             if keyboard:
                 await message.answer(response, reply_markup=keyboard, parse_mode="HTML")
@@ -155,7 +155,7 @@ async def change_time(call: CallbackQuery, state: FSMContext):
         _, channel_id, post_num = call.data.split(":")
         channel_id = int(channel_id)
 
-        last_edit = db.get_last_edit_time(channel_id, premium=False)
+        last_edit = await db.get_last_edit_time(channel_id, premium=False)
         if last_edit:
             try:
                 last_edit_datetime = datetime.fromisoformat(last_edit)
@@ -203,12 +203,12 @@ async def process_new_time(message: Message, state: FSMContext):
             )
             return
 
-        db.update_single_post(channel_id, post_num, time=new_time, premium=False)
+        await db.update_single_post(channel_id, post_num, time=new_time, premium=False)
 
-        channel = db.get_channel_by_id(channel_id, premium=False)
+        channel = await db.get_channel_by_id(channel_id, premium=False)
         if channel:
             response = _format_channel_info(channel, is_premium=False)
-            keyboard = _build_channel_keyboard(channel_id, is_premium=False)
+            keyboard = await _build_channel_keyboard(channel_id, is_premium=False)
             await message.answer(
                 f"Vaqt muvaffaqiyatli o'zgartirildi!\n\n{response}",
                 reply_markup=keyboard,
@@ -275,12 +275,12 @@ async def process_new_theme(message: Message, state: FSMContext):
             )
             return
 
-        db.update_single_post(channel_id, post_num, theme=new_theme, premium=False)
+        await db.update_single_post(channel_id, post_num, theme=new_theme, premium=False)
 
-        channel = db.get_channel_by_id(channel_id, premium=False)
+        channel = await db.get_channel_by_id(channel_id, premium=False)
         if channel:
             response = _format_channel_info(channel, is_premium=False)
-            keyboard = _build_channel_keyboard(channel_id, is_premium=False)
+            keyboard = await _build_channel_keyboard(channel_id, is_premium=False)
             await message.answer(
                 f"Mavzu muvaffaqiyatli o'zgartirildi!\n\n{response}",
                 reply_markup=keyboard,
@@ -307,7 +307,7 @@ async def change_premium_time(call: CallbackQuery, state: FSMContext):
         _, channel_id, post_num = call.data.split(":")
         channel_id = int(channel_id)
 
-        last_edit = db.get_last_edit_time(channel_id, premium=True)
+        last_edit = await db.get_last_edit_time(channel_id, premium=True)
         if last_edit:
             try:
                 last_edit_datetime = datetime.fromisoformat(last_edit)
@@ -355,12 +355,12 @@ async def process_new_premium_time(message: Message, state: FSMContext):
             )
             return
 
-        db.update_single_post(channel_id, post_num, time=new_time, premium=True)
+        await db.update_single_post(channel_id, post_num, time=new_time, premium=True)
 
-        channel = db.get_channel_by_id(channel_id, premium=True)
+        channel = await db.get_channel_by_id(channel_id, premium=True)
         if channel:
             response = _format_channel_info(channel, is_premium=True)
-            keyboard = _build_channel_keyboard(channel_id, is_premium=True)
+            keyboard = await _build_channel_keyboard(channel_id, is_premium=True)
             await message.answer(
                 f"Vaqt muvaffaqiyatli o'zgartirildi!\n\n{response}",
                 reply_markup=keyboard,
@@ -427,12 +427,12 @@ async def process_new_premium_theme(message: Message, state: FSMContext):
             )
             return
 
-        db.update_single_post(channel_id, post_num, theme=new_theme, premium=True)
+        await db.update_single_post(channel_id, post_num, theme=new_theme, premium=True)
 
-        channel = db.get_channel_by_id(channel_id, premium=True)
+        channel = await db.get_channel_by_id(channel_id, premium=True)
         if channel:
             response = _format_channel_info(channel, is_premium=True)
-            keyboard = _build_channel_keyboard(channel_id, is_premium=True)
+            keyboard = await _build_channel_keyboard(channel_id, is_premium=True)
             await message.answer(
                 f"Mavzu muvaffaqiyatli o'zgartirildi!\n\n{response}",
                 reply_markup=keyboard,
@@ -460,7 +460,7 @@ async def toggle_image_premium(call: CallbackQuery):
         channel_id = int(channel_id)
         post_num = int(post_num)
 
-        channel = db.get_channel_by_id(channel_id, premium=True)
+        channel = await db.get_channel_by_id(channel_id, premium=True)
 
         if not channel:
             await call.message.answer(
@@ -473,15 +473,15 @@ async def toggle_image_premium(call: CallbackQuery):
         current_status = channel[image_col_idx] if image_col_idx < len(channel) else 'no'
         new_status = 'no' if current_status == 'yes' else 'yes'
 
-        db.execute_query(
+        await db.execute_query(
             f"UPDATE premium_channel SET image{post_num} = ? WHERE id = ?",
             (new_status, channel_id)
         )
 
-        channel = db.get_channel_by_id(channel_id, premium=True)
+        channel = await db.get_channel_by_id(channel_id, premium=True)
         if channel:
             response = _format_channel_info(channel, is_premium=True)
-            keyboard = _build_channel_keyboard(channel_id, is_premium=True)
+            keyboard = await _build_channel_keyboard(channel_id, is_premium=True)
 
             status_text = "yoqildi" if new_status == 'yes' else "o'chirildi"
             await call.message.answer(

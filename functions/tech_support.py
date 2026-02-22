@@ -15,7 +15,7 @@ async def request_support(call: CallbackQuery, state: FSMContext):
     try:
         user_id = call.from_user.id
 
-        if not db.is_premium_user(user_id):
+        if not await db.is_premium_user(user_id):
             await call.answer(
                 "Texnik yordam faqat premium foydalanuvchilar uchun mavjud!",
                 show_alert=True
@@ -49,7 +49,7 @@ async def process_support_message(message: Message, state: FSMContext, bot: Bot)
         user_name = message.from_user.full_name
         username = message.from_user.username or "Yo'q"
 
-        if not db.is_premium_user(user_id):
+        if not await db.is_premium_user(user_id):
             await message.answer(
                 "Texnik yordam faqat premium foydalanuvchilar uchun mavjud!",
                 reply_markup=p_back_to_main

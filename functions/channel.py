@@ -34,7 +34,7 @@ async def requesting_id(call: CallbackQuery, state: FSMContext):
 
         await safe_delete(call.message)
 
-        channel_count = db.count_user_channels(user_id, premium=False)
+        channel_count = await db.count_user_channels(user_id, premium=False)
         if channel_count >= MAX_CHANNELS_FREE:
             await send_error(
                 call,
@@ -78,7 +78,7 @@ async def getting_id(message: Message, state: FSMContext):
 
         await state.update_data(channel_id=channel_id)
 
-        if db.channel_exists(channel_id, premium=False):
+        if await db.channel_exists(channel_id, premium=False):
             await send_error(
                 message,
                 "Bu kanal allaqachon qo'shilgan",
@@ -111,7 +111,7 @@ async def admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot: Bot):
             await state.clear()
             return
 
-        if db.channel_exists(channel_id, premium=False):
+        if await db.channel_exists(channel_id, premium=False):
             await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
             await state.clear()
             return
@@ -121,12 +121,12 @@ async def admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot: Bot):
         try:
             member = await bot.get_chat_member(channel_id, bot_id)
             if member.status in ("administrator", "creator"):
-                if db.channel_exists(channel_id, premium=False):
+                if await db.channel_exists(channel_id, premium=False):
                     await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
                     await state.clear()
                     return
 
-                db.add_channel(channel_id, user_id, premium=False)
+                await db.add_channel(channel_id, user_id, premium=False)
 
                 # "Admin qilingizmi?" xabarini o'chirish + prompt
                 await send_prompt(
@@ -177,7 +177,7 @@ async def select_post_number(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            channels = db.get_user_channels(user_id, premium=False)
+            channels = await db.get_user_channels(user_id, premium=False)
             if channels:
                 channel_id = channels[0][1]
             else:
@@ -226,7 +226,7 @@ async def insert_time(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            channels = db.get_user_channels(user_id, premium=False)
+            channels = await db.get_user_channels(user_id, premium=False)
             if channels:
                 channel_id = channels[0][1]
             else:
@@ -276,7 +276,7 @@ async def insert_theme(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            channels = db.get_user_channels(user_id, premium=False)
+            channels = await db.get_user_channels(user_id, premium=False)
             if channels:
                 channel_id = channels[0][1]
             else:
@@ -289,7 +289,7 @@ async def insert_theme(message: Message, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_theme": theme_value, "channel_id": channel_id})
 
-        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
+        await db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -337,7 +337,7 @@ async def handle_image_toggle(call: CallbackQuery, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_has_image": has_image})
 
-        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
+        await db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=False, skip_24h_check=True)
 
         if current_post < post_count:
             await state.update_data(current_post=current_post + 1, channel_id=channel_id)

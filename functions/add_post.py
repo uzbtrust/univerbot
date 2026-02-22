@@ -51,14 +51,14 @@ async def show_channels_for_post(call: CallbackQuery, state: FSMContext, bot: Bo
         user_id = call.from_user.id
 
         # Foydalanuvchi premium yoki oddiy ekanligini tekshirish
-        is_premium = db.is_premium(user_id)
+        is_premium = await db.is_premium(user_id)
 
         # Kanallarni olish
         if is_premium:
-            channels = db.get_user_channels(user_id, premium=True)
+            channels = await db.get_user_channels(user_id, premium=True)
             back_kb = p_back_to_main
         else:
-            channels = db.get_user_channels(user_id, premium=False)
+            channels = await db.get_user_channels(user_id, premium=False)
             back_kb = back_to_main
 
         if not channels:
@@ -131,11 +131,11 @@ async def select_channel_for_post(call: CallbackQuery, state: FSMContext, bot: B
         # Post limitni tekshirish
         if is_premium:
             max_posts = MAX_POSTS_PREMIUM
-            current_posts = db.count_channel_posts(channel_id, premium=True)
+            current_posts = await db.count_channel_posts(channel_id, premium=True)
             max_theme_words = MAX_THEME_WORDS_PREMIUM
         else:
             max_posts = MAX_POSTS_FREE
-            current_posts = db.count_channel_posts(channel_id, premium=False)
+            current_posts = await db.count_channel_posts(channel_id, premium=False)
             max_theme_words = MAX_THEME_WORDS_FREE
 
         if current_posts >= max_posts:
@@ -143,7 +143,7 @@ async def select_channel_for_post(call: CallbackQuery, state: FSMContext, bot: B
                 f"⚠️ <b>Limitga yetdingiz!</b>\n\n"
                 f"Siz bu kanalga maksimum {max_posts} ta post qo'shishingiz mumkin.\n"
                 f"Hozirda: {current_posts} ta post mavjud.\n\n"
-                f"{'Premium foydalanuvchi sifatida 15 tagacha post qo\'shishingiz mumkin edi.' if not is_premium else 'Eski postlarni o\'chirib yangilarini qo\'shing.'}",
+                f"{'Premium foydalanuvchi sifatida 15 tagacha post qoshishingiz mumkin edi.' if not is_premium else 'Eski postlarni ochirib yangilarini qoshing.'}",
                 reply_markup=back_kb,
                 parse_mode="HTML"
             )
@@ -151,7 +151,7 @@ async def select_channel_for_post(call: CallbackQuery, state: FSMContext, bot: B
             return
 
         # Bo'sh post raqamini topish (o'chirilgan postlar o'rniga qo'shish uchun)
-        next_post_num = db.get_next_available_post_num(channel_id, premium=is_premium)
+        next_post_num = await db.get_next_available_post_num(channel_id, premium=is_premium)
         if next_post_num is None:
             await call.message.answer(
                 f"⚠️ <b>Limitga yetdingiz!</b>\n\n"
@@ -345,7 +345,7 @@ async def save_post_to_database(event, state: FSMContext, with_image: str = 'no'
 
         try:
             # Database ga saqlash (yangi post - 24h tekshiruvi kerak emas)
-            db.update_channel_post(
+            await db.update_channel_post(
                 channel_id=channel_id,
                 post_num=post_number,
                 time=post_time,
@@ -361,7 +361,7 @@ async def save_post_to_database(event, state: FSMContext, with_image: str = 'no'
                 f"📋 Post raqami: {post_number}\n"
                 f"⏰ Vaqt: {post_time}\n"
                 f"📝 Mavzu: {post_theme}\n"
-                f'🖼 Rasm: {"Ha" if with_image == "yes" else "Yo\'q"}'
+                f'🖼 Rasm: {"Ha" if with_image == "yes" else "Yoq"}'
             )
 
             if isinstance(event, CallbackQuery):

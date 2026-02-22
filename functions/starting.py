@@ -24,8 +24,8 @@ async def greating(event: Message | CallbackQuery):
     full_name = user.full_name
 
     try:
-        if db.is_superadmin(user_id):
-            if db.is_premium_user(user_id):
+        if await db.is_superadmin(user_id):
+            if await db.is_premium_user(user_id):
                 await message.answer(
                     f'SUPERADMIN PANEL\n\n'
                     f'Assalomu alaykum, {full_name}!\n\n'
@@ -43,8 +43,8 @@ async def greating(event: Message | CallbackQuery):
             logger.info(f"Superadmin {user_id} accessed the bot")
             return
 
-        if not db.user_exists(user_id):
-            db.add_user(user_id, subscription=False)
+        if not await db.user_exists(user_id):
+            await db.add_user(user_id, subscription=False)
 
             welcome_text = (
                 f"<b>Xush kelibsiz!</b>\n\n"
@@ -64,7 +64,7 @@ async def greating(event: Message | CallbackQuery):
             )
             logger.info(f"New user registered: {user_id}")
         else:
-            if db.is_premium_user(user_id):
+            if await db.is_premium_user(user_id):
                 welcome_msg = MESSAGES["welcome_premium"].format(name=full_name)
                 await message.answer(
                     welcome_msg,

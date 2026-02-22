@@ -21,7 +21,7 @@ async def verify_bot_admin_status(
     is_premium: bool,
     reply_keyboard: ReplyKeyboardMarkup,
 ) -> bool:
-    if db.channel_exists(channel_id, premium=is_premium):
+    if await db.channel_exists(channel_id, premium=is_premium):
         await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
         await state.clear()
         if user_id in context_storage:
@@ -33,14 +33,14 @@ async def verify_bot_admin_status(
     try:
         member = await bot.get_chat_member(channel_id, bot_id)
         if member.status in ("administrator", "creator"):
-            if db.channel_exists(channel_id, premium=is_premium):
+            if await db.channel_exists(channel_id, premium=is_premium):
                 await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
                 await state.clear()
                 if user_id in context_storage:
                     del context_storage[user_id]
                 return False
 
-            db.add_channel(channel_id, user_id, premium=is_premium)
+            await db.add_channel(channel_id, user_id, premium=is_premium)
 
             await call.message.delete()
             await call.message.answer(

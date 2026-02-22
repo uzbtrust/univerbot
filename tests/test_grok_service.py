@@ -11,20 +11,20 @@ async def test_grok_generate_post_success():
     mock_response.choices = [MagicMock()]
     mock_response.choices[0].message.content = "Test post content"
 
-    with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_thread:
-        mock_thread.return_value = mock_response
+    with patch.object(service.client.chat.completions, 'create', new_callable=AsyncMock) as mock_create:
+        mock_create.return_value = mock_response
 
         result = await service.generate_post("test theme", is_premium=False)
 
         assert result == "Test post content"
-        mock_thread.assert_called_once()
+        mock_create.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_grok_generate_post_fallback():
     service = GrokService()
 
-    with patch('asyncio.to_thread', side_effect=Exception("API Error")):
+    with patch.object(service.client.chat.completions, 'create', new_callable=AsyncMock, side_effect=Exception("API Error")):
         result = await service.generate_post("test theme", is_premium=False)
 
         assert "test theme" in result
@@ -37,7 +37,7 @@ async def test_grok_retry_logic():
 
     call_count = 0
 
-    def mock_api_call(*args, **kwargs):
+    async def mock_api_call(*args, **kwargs):
         nonlocal call_count
         call_count += 1
         if call_count < 4:
@@ -48,7 +48,7 @@ async def test_grok_retry_logic():
         mock_response.choices[0].message.content = "Success after retries"
         return mock_response
 
-    with patch('asyncio.to_thread', new_callable=AsyncMock, side_effect=mock_api_call):
+    with patch.object(service.client.chat.completions, 'create', side_effect=mock_api_call):
         result = await service.generate_post("retry test", is_premium=True)
 
         assert result == "Success after retries"

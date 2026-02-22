@@ -35,7 +35,7 @@ async def requesting_id(call: CallbackQuery, state: FSMContext):
 
         await safe_delete(call.message)
 
-        channel_count = db.count_user_channels(user_id, premium=True)
+        channel_count = await db.count_user_channels(user_id, premium=True)
         if channel_count >= MAX_CHANNELS_PREMIUM:
             await send_error(
                 call,
@@ -77,7 +77,7 @@ async def getting_id(message: Message, state: FSMContext):
 
         await state.update_data(channel_id=channel_id)
 
-        if db.channel_exists(channel_id, premium=True):
+        if await db.channel_exists(channel_id, premium=True):
             await send_error(
                 message,
                 "Bu kanal allaqachon qo'shilgan",
@@ -109,7 +109,7 @@ async def premium_admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot:
             await state.clear()
             return
 
-        if db.channel_exists(channel_id, premium=True):
+        if await db.channel_exists(channel_id, premium=True):
             await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
             await state.clear()
             return
@@ -119,12 +119,12 @@ async def premium_admin_confirm_yes(call: CallbackQuery, state: FSMContext, bot:
         try:
             member = await bot.get_chat_member(channel_id, bot_id)
             if member.status in ("administrator", "creator"):
-                if db.channel_exists(channel_id, premium=True):
+                if await db.channel_exists(channel_id, premium=True):
                     await call.answer("Bu kanal allaqachon qo'shilgan", show_alert=True)
                     await state.clear()
                     return
 
-                db.add_channel(channel_id, user_id, premium=True)
+                await db.add_channel(channel_id, user_id, premium=True)
 
                 success_message = (
                     "KANAL QO'SHILDI!\n\n"
@@ -182,7 +182,7 @@ async def select_post_number(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            channels = db.get_user_channels(user_id, premium=True)
+            channels = await db.get_user_channels(user_id, premium=True)
             if channels:
                 channel_id = channels[-1][1]
             else:
@@ -228,7 +228,7 @@ async def insert_time(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            channels = db.get_user_channels(user_id, premium=True)
+            channels = await db.get_user_channels(user_id, premium=True)
             if channels:
                 channel_id = channels[-1][1]
             else:
@@ -276,7 +276,7 @@ async def insert_theme(message: Message, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            channels = db.get_user_channels(user_id, premium=True)
+            channels = await db.get_user_channels(user_id, premium=True)
             if channels:
                 channel_id = channels[-1][1]
             else:
@@ -299,7 +299,7 @@ async def insert_theme(message: Message, state: FSMContext):
             )
             await state.set_state(PremiumChannel.IMAGE_TOGGLE)
         else:
-            db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image='no', skip_24h_check=True)
+            await db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image='no', skip_24h_check=True)
 
             if current_post < post_count:
                 await state.update_data(current_post=current_post + 1, channel_id=channel_id)
@@ -335,7 +335,7 @@ async def handle_premium_image_toggle(call: CallbackQuery, state: FSMContext):
         channel_id = data.get('channel_id')
 
         if not channel_id:
-            channels = db.get_user_channels(user_id, premium=True)
+            channels = await db.get_user_channels(user_id, premium=True)
             if channels:
                 channel_id = channels[-1][1]
             else:
@@ -357,7 +357,7 @@ async def handle_premium_image_toggle(call: CallbackQuery, state: FSMContext):
 
         await state.update_data(**{f"post{current_post}_has_image": has_image})
 
-        db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image=has_image, skip_24h_check=True)
+        await db.update_channel_post(channel_id, current_post, time_value, theme_value, premium=True, with_image=has_image, skip_24h_check=True)
         logger.info(f"handle_premium_image_toggle: Post saved successfully!")
 
         if current_post < post_count:

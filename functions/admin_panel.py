@@ -28,7 +28,7 @@ async def show_admin_panel(call: CallbackQuery):
     try:
         user_id = call.from_user.id
 
-        if not db.is_superadmin(user_id):
+        if not await db.is_superadmin(user_id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -47,18 +47,18 @@ async def show_statistics(call: CallbackQuery):
     try:
         user_id = call.from_user.id
 
-        if not db.is_superadmin(user_id):
+        if not await db.is_superadmin(user_id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
         # Bugungi statsni yozib qo'yamiz
-        db.record_daily_stats()
+        await db.record_daily_stats()
 
-        total_users = db.get_total_users()
-        premium_users = db.get_premium_users_count()
+        total_users = await db.get_total_users()
+        premium_users = await db.get_premium_users_count()
         free_users = total_users - premium_users
-        total_channels = db.get_total_channels()
-        total_posts, posts_with_image = db.count_total_active_posts()
+        total_channels = await db.get_total_channels()
+        total_posts, posts_with_image = await db.count_total_active_posts()
 
         stats_text = (
             "<b>📊 Bot Statistikasi</b>\n\n"
@@ -71,7 +71,7 @@ async def show_statistics(call: CallbackQuery):
         )
 
         # Grafik yaratish
-        stats_history = db.get_stats_history(days=30)
+        stats_history = await db.get_stats_history(days=30)
 
         if stats_history and len(stats_history) >= 1:
             chart_bytes = generate_stats_chart(stats_history)
@@ -102,7 +102,7 @@ async def download_logs(call: CallbackQuery):
     try:
         user_id = call.from_user.id
 
-        if not db.is_superadmin(user_id):
+        if not await db.is_superadmin(user_id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -192,7 +192,7 @@ async def request_broadcast_message(call: CallbackQuery, state: FSMContext):
     try:
         user_id = call.from_user.id
 
-        if not db.is_superadmin(user_id):
+        if not await db.is_superadmin(user_id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -238,7 +238,7 @@ async def confirm_broadcast_handler(call: CallbackQuery, state: FSMContext, bot:
     try:
         user_id = call.from_user.id
 
-        if not db.is_superadmin(user_id):
+        if not await db.is_superadmin(user_id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -251,7 +251,7 @@ async def confirm_broadcast_handler(call: CallbackQuery, state: FSMContext, bot:
             await state.clear()
             return
 
-        users = db.get_all_user_ids()
+        users = await db.get_all_user_ids()
 
         if not users:
             await call.message.edit_text(
@@ -314,7 +314,7 @@ async def cancel_broadcast_handler(call: CallbackQuery, state: FSMContext):
 
 async def show_settings_menu(call: CallbackQuery):
     try:
-        if not db.is_superadmin(call.from_user.id):
+        if not await db.is_superadmin(call.from_user.id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -336,7 +336,7 @@ async def show_settings_menu(call: CallbackQuery):
 
 async def show_payment_settings(call: CallbackQuery):
     try:
-        if not db.is_superadmin(call.from_user.id):
+        if not await db.is_superadmin(call.from_user.id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -368,7 +368,7 @@ async def show_payment_settings(call: CallbackQuery):
 
 async def show_limits_settings(call: CallbackQuery):
     try:
-        if not db.is_superadmin(call.from_user.id):
+        if not await db.is_superadmin(call.from_user.id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -400,7 +400,7 @@ async def show_limits_settings(call: CallbackQuery):
 
 async def toggle_image_mode(call: CallbackQuery):
     try:
-        if not db.is_superadmin(call.from_user.id):
+        if not await db.is_superadmin(call.from_user.id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
@@ -429,7 +429,7 @@ async def toggle_image_mode(call: CallbackQuery):
 
 async def request_edit_value(call: CallbackQuery, state: FSMContext):
     try:
-        if not db.is_superadmin(call.from_user.id):
+        if not await db.is_superadmin(call.from_user.id):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 

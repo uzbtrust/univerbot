@@ -5,15 +5,14 @@ from zoneinfo import ZoneInfo
 from typing import Optional, Dict, Tuple
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, text, event
+from sqlalchemy import create_engine, text, inspect, event
 from sqlalchemy.pool import StaticPool
+from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
 
 TZ = ZoneInfo("Asia/Tashkent")
 ALLOWED_TABLES = {"channel", "premium_channel"}
-
-DB_URL = "sqlite:///database.db"
 
 
 class DatabaseManager:
@@ -32,52 +31,62 @@ class DatabaseManager:
         if self._initialized:
             return
         self._initialized = True
-        self._engine = create_engine(
-            DB_URL,
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-            echo=False,
-        )
+        self._is_pg = DATABASE_URL.startswith("postgresql")
 
-        @event.listens_for(self._engine, "connect")
-        def set_sqlite_pragma(dbapi_connection, connection_record):
-            cursor = dbapi_connection.cursor()
-            cursor.execute("PRAGMA journal_mode=WAL;")
-            cursor.execute("PRAGMA synchronous=NORMAL;")
-            cursor.execute("PRAGMA busy_timeout=5000;")
-            cursor.close()
+        if self._is_pg:
+            self._engine = create_engine(
+                DATABASE_URL, echo=False,
+                pool_size=5, max_overflow=10
+            )
+        else:
+            self._engine = create_engine(
+                DATABASE_URL,
+                connect_args={"check_same_thread": False},
+                poolclass=StaticPool,
+                echo=False,
+            )
+
+            @event.listens_for(self._engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                cursor.execute("PRAGMA synchronous=NORMAL;")
+                cursor.execute("PRAGMA busy_timeout=5000;")
+                cursor.close()
 
         self._init_database()
 
     def _init_database(self):
+        id_type = "BIGINT" if self._is_pg else "INTEGER"
+
         with self._engine.begin() as conn:
-            conn.execute(text('''
+            conn.execute(text(f'''
                 CREATE TABLE IF NOT EXISTS superadmins (
-                    id INTEGER PRIMARY KEY
+                    id {id_type} PRIMARY KEY
                 )
             '''))
-            conn.execute(text('''
+            conn.execute(text(f'''
                 CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY,
-                    subscription BOOLEAN DEFAULT 0,
+                    id {id_type} PRIMARY KEY,
+                    subscription BOOLEAN DEFAULT FALSE,
                     premium_type TEXT,
                     start_date TIMESTAMP,
                     end_date TIMESTAMP
                 )
             '''))
-            conn.execute(text('''
+            conn.execute(text(f'''
                 CREATE TABLE IF NOT EXISTS channel (
-                    user_id INTEGER,
-                    id INTEGER PRIMARY KEY,
+                    user_id {id_type},
+                    id {id_type} PRIMARY KEY,
                     post1 TEXT, theme1 TEXT,
                     post2 TEXT, theme2 TEXT,
                     post3 TEXT, theme3 TEXT
                 )
             '''))
-            conn.execute(text('''
+            conn.execute(text(f'''
                 CREATE TABLE IF NOT EXISTS premium_channel (
-                    user_id INTEGER,
-                    id INTEGER PRIMARY KEY,
+                    user_id {id_type},
+                    id {id_type} PRIMARY KEY,
                     post1 TEXT, theme1 TEXT,
                     post2 TEXT, theme2 TEXT,
                     post3 TEXT, theme3 TEXT,
@@ -96,30 +105,41 @@ class DatabaseManager:
                 )
             '''))
 
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_subscription ON users(subscription);"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_channel_user_id ON channel(user_id);"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_premium_channel_user_id ON premium_channel(user_id);"))
+            conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS daily_stats (
+                    date TEXT PRIMARY KEY,
+                    total_users INTEGER DEFAULT 0,
+                    premium_users INTEGER DEFAULT 0,
+                    total_channels INTEGER DEFAULT 0,
+                    total_posts INTEGER DEFAULT 0,
+                    posts_with_image INTEGER DEFAULT 0
+                )
+            '''))
+
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_sub ON users(subscription);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_channel_uid ON channel(user_id);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pchannel_uid ON premium_channel(user_id);"))
 
             for i in range(1, 4):
-                conn.execute(text(f"CREATE INDEX IF NOT EXISTS idx_channel_post{i} ON channel(post{i});"))
+                conn.execute(text(f"CREATE INDEX IF NOT EXISTS idx_ch_post{i} ON channel(post{i});"))
             for i in range(1, 16):
-                conn.execute(text(f"CREATE INDEX IF NOT EXISTS idx_premium_post{i} ON premium_channel(post{i});"))
+                conn.execute(text(f"CREATE INDEX IF NOT EXISTS idx_pch_post{i} ON premium_channel(post{i});"))
 
-            self._add_column_if_not_exists(conn, "channel", "with_image", "BOOLEAN DEFAULT 0")
-            self._add_column_if_not_exists(conn, "premium_channel", "with_image", "BOOLEAN DEFAULT 0")
+            self._add_column_safe(conn, "channel", "with_image", "BOOLEAN DEFAULT FALSE")
+            self._add_column_safe(conn, "premium_channel", "with_image", "BOOLEAN DEFAULT FALSE")
             for i in range(1, 16):
-                self._add_column_if_not_exists(conn, "premium_channel", f"image{i}", "TEXT DEFAULT 'no'")
-            self._add_column_if_not_exists(conn, "channel", "last_edit_time", "TIMESTAMP")
-            self._add_column_if_not_exists(conn, "premium_channel", "last_edit_time", "TIMESTAMP")
+                self._add_column_safe(conn, "premium_channel", f"image{i}", "TEXT DEFAULT 'no'")
+            self._add_column_safe(conn, "channel", "last_edit_time", "TIMESTAMP")
+            self._add_column_safe(conn, "premium_channel", "last_edit_time", "TIMESTAMP")
 
-        logger.info("Database tables initialized (SQLAlchemy)")
+        logger.info(f"Database initialized ({'PostgreSQL' if self._is_pg else 'SQLite'})")
 
-    def _add_column_if_not_exists(self, conn, table_name: str, column_name: str, column_def: str):
+    def _add_column_safe(self, conn, table_name: str, column_name: str, column_def: str):
         if table_name not in ALLOWED_TABLES:
             raise ValueError(f"Invalid table name: {table_name}")
         try:
-            result = conn.execute(text(f"PRAGMA table_info({table_name})"))
-            columns = [row[1] for row in result.fetchall()]
+            insp = inspect(conn)
+            columns = [col['name'] for col in insp.get_columns(table_name)]
             if column_name not in columns:
                 conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}"))
                 logger.info(f"Added column {column_name} to {table_name}")
@@ -140,7 +160,6 @@ class DatabaseManager:
 
     def execute_query(self, query: str, params: tuple = (), fetch_one: bool = False, fetch_all: bool = False):
         with self._engine.connect() as conn:
-            # SQLAlchemy text() bilan ? ni :p0, :p1 ga o'girish
             sa_query = query
             sa_params = {}
             for i, val in enumerate(params):
@@ -191,7 +210,7 @@ class DatabaseManager:
             self._cleanup_cache_if_needed()
             return True
         result = self.execute_query("SELECT subscription FROM users WHERE id = ?", (user_id,), fetch_one=True)
-        is_premium = bool(result and result[0] == 1)
+        is_premium = bool(result and result[0])
         self._premium_cache[user_id] = (is_premium, now)
         self._cleanup_cache_if_needed()
         return is_premium
@@ -201,10 +220,16 @@ class DatabaseManager:
         return result is not None
 
     def add_user(self, user_id: int, subscription: bool = False):
-        self.execute_query("INSERT OR IGNORE INTO users (id, subscription) VALUES (?, ?)", (user_id, subscription))
+        self.execute_query(
+            "INSERT INTO users (id, subscription) VALUES (?, ?) ON CONFLICT (id) DO NOTHING",
+            (user_id, subscription)
+        )
 
     def add_superadmin(self, user_id: int):
-        self.execute_query("INSERT OR IGNORE INTO superadmins (id) VALUES (?)", (user_id,))
+        self.execute_query(
+            "INSERT INTO superadmins (id) VALUES (?) ON CONFLICT (id) DO NOTHING",
+            (user_id,)
+        )
 
     def update_user_subscription(self, user_id: int, subscription: bool, premium_type: Optional[str] = None):
         if premium_type:
@@ -290,7 +315,7 @@ class DatabaseManager:
         return result[0] if result else 0
 
     def get_premium_users_count(self) -> int:
-        result = self.execute_query("SELECT COUNT(*) FROM users WHERE subscription = 1", fetch_one=True)
+        result = self.execute_query("SELECT COUNT(*) FROM users WHERE subscription = TRUE", fetch_one=True)
         return result[0] if result else 0
 
     def get_total_channels(self) -> int:
@@ -372,6 +397,62 @@ class DatabaseManager:
     def update_last_edit_time(self, channel_id: int, edit_time: str, premium: bool = False):
         table = self._get_table_name(premium)
         self.execute_query(f"UPDATE {table} SET last_edit_time = ? WHERE id = ?", (edit_time, channel_id))
+
+    # ============== Daily Stats Methods ==============
+
+    def count_total_active_posts(self) -> tuple:
+        """Jami faol postlar sonini qaytarish: (jami, rasmli)."""
+        total = 0
+        with_image = 0
+
+        free_channels = self.execute_query("SELECT * FROM channel", fetch_all=True)
+        for ch in free_channels:
+            for i in range(1, 4):
+                post_idx = 2 + (i - 1) * 2
+                if post_idx < len(ch) and ch[post_idx]:
+                    total += 1
+
+        premium_channels = self.execute_query("SELECT * FROM premium_channel", fetch_all=True)
+        for ch in premium_channels:
+            for i in range(1, 16):
+                post_idx = 2 + (i - 1) * 2
+                image_idx = 32 + (i - 1)
+                if post_idx < len(ch) and ch[post_idx]:
+                    total += 1
+                    if image_idx < len(ch) and ch[image_idx] == 'yes':
+                        with_image += 1
+
+        return total, with_image
+
+    def record_daily_stats(self):
+        """Bugungi statistikani jadvalga yozish (upsert)."""
+        today = datetime.now(TZ).strftime("%Y-%m-%d")
+        total_users = self.get_total_users()
+        premium_users = self.get_premium_users_count()
+        total_channels = self.get_total_channels()
+        total_posts, posts_with_image = self.count_total_active_posts()
+
+        self.execute_query(
+            """INSERT INTO daily_stats (date, total_users, premium_users, total_channels, total_posts, posts_with_image)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT (date) DO UPDATE SET
+               total_users = excluded.total_users,
+               premium_users = excluded.premium_users,
+               total_channels = excluded.total_channels,
+               total_posts = excluded.total_posts,
+               posts_with_image = excluded.posts_with_image""",
+            (today, total_users, premium_users, total_channels, total_posts, posts_with_image)
+        )
+        logger.info(f"Daily stats recorded: {today} | users={total_users} premium={premium_users} "
+                     f"channels={total_channels} posts={total_posts} img={posts_with_image}")
+
+    def get_stats_history(self, days: int = 30):
+        """Oxirgi N kunlik statistikani olish (eng yangi birinchi)."""
+        return self.execute_query(
+            "SELECT date, total_users, premium_users, total_channels, total_posts, posts_with_image "
+            "FROM daily_stats ORDER BY date DESC LIMIT ?",
+            (days,), fetch_all=True
+        )
 
 
 db = DatabaseManager()

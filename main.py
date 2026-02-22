@@ -52,6 +52,12 @@ class BotManager:
         self.scheduler = PostScheduler(bot)
         asyncio.create_task(self.scheduler.run(stop_event=self._stop_event))
 
+        # Kunlik statistikani yozish
+        try:
+            db.record_daily_stats()
+        except Exception as e:
+            logger.warning(f"Daily stats record failed: {e}")
+
         await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🚀 Bot va Post Scheduler ishga tushdi")
         logger.info("Bot and Post Scheduler started successfully")
 
@@ -106,6 +112,7 @@ class BotManager:
         self.dp.callback_query.register(admin_panel.request_broadcast_message, F.data == "admin_broadcast")
         self.dp.callback_query.register(admin_panel.confirm_broadcast_handler, F.data == "confirm_broadcast")
         self.dp.callback_query.register(admin_panel.cancel_broadcast_handler, F.data == "cancel_broadcast")
+        self.dp.callback_query.register(admin_panel.download_logs, F.data == "admin_logs")
 
         self.dp.callback_query.register(admin_panel.show_settings_menu, F.data == "admin_settings")
         self.dp.callback_query.register(admin_panel.show_payment_settings, F.data == "settings_payment")

@@ -4,6 +4,7 @@ from aiogram import Bot
 from aiogram.types import Message, CallbackQuery
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest
 
 from states import ChangeTimeState, ChangeThemeState, ChangeTimePremiumState, ChangeThemePremiumState
 from utils.database import db
@@ -12,6 +13,18 @@ from config import MAX_THEME_WORDS_FREE, MAX_THEME_WORDS_PREMIUM
 from keyboards.inline import back_to_main
 
 logger = logging.getLogger(__name__)
+
+
+async def _safe_delete(message) -> bool:
+    """Xabarni o'chirish. Muvaffaqiyatsiz bo'lsa log yozadi."""
+    try:
+        await message.delete()
+        return True
+    except TelegramBadRequest:
+        return False
+    except Exception as e:
+        logger.debug(f"Xabar o'chirib bo'lmadi: {e}")
+        return False
 
 
 def _build_channel_keyboard(channel_id: int, is_premium: bool = False):
@@ -137,10 +150,7 @@ async def channel_list(message: Message):
 
 async def change_time(call: CallbackQuery, state: FSMContext):
     try:
-        try:
-            await call.message.delete()
-        except Exception:
-            pass
+        await _safe_delete(call.message)
 
         _, channel_id, post_num = call.data.split(":")
         channel_id = int(channel_id)
@@ -226,10 +236,7 @@ async def process_new_time(message: Message, state: FSMContext):
 
 async def change_theme(call: CallbackQuery, state: FSMContext):
     try:
-        try:
-            await call.message.delete()
-        except Exception:
-            pass
+        await _safe_delete(call.message)
 
         _, channel_id, post_num = call.data.split(":")
         channel_id = int(channel_id)
@@ -295,10 +302,7 @@ async def process_new_theme(message: Message, state: FSMContext):
 
 async def change_premium_time(call: CallbackQuery, state: FSMContext):
     try:
-        try:
-            await call.message.delete()
-        except Exception:
-            pass
+        await _safe_delete(call.message)
 
         _, channel_id, post_num = call.data.split(":")
         channel_id = int(channel_id)
@@ -384,10 +388,7 @@ async def process_new_premium_time(message: Message, state: FSMContext):
 
 async def change_premium_theme(call: CallbackQuery, state: FSMContext):
     try:
-        try:
-            await call.message.delete()
-        except Exception:
-            pass
+        await _safe_delete(call.message)
 
         _, channel_id, post_num = call.data.split(":")
         channel_id = int(channel_id)
@@ -453,10 +454,7 @@ async def process_new_premium_theme(message: Message, state: FSMContext):
 
 async def toggle_image_premium(call: CallbackQuery):
     try:
-        try:
-            await call.message.delete()
-        except Exception:
-            pass
+        await _safe_delete(call.message)
 
         _, channel_id, post_num = call.data.split(":")
         channel_id = int(channel_id)
@@ -475,13 +473,10 @@ async def toggle_image_premium(call: CallbackQuery):
         current_status = channel[image_col_idx] if image_col_idx < len(channel) else 'no'
         new_status = 'no' if current_status == 'yes' else 'yes'
 
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                f"UPDATE premium_channel SET image{post_num} = ? WHERE id = ?",
-                (new_status, channel_id)
-            )
-            conn.commit()
+        db.execute_query(
+            f"UPDATE premium_channel SET image{post_num} = ? WHERE id = ?",
+            (new_status, channel_id)
+        )
 
         channel = db.get_channel_by_id(channel_id, premium=True)
         if channel:

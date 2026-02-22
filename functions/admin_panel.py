@@ -1,5 +1,8 @@
 import logging
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+import asyncio
+import os
+from datetime import datetime, timedelta
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, BufferedInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram import Bot
 
@@ -12,9 +15,13 @@ from keyboards.inline import (
 from utils.database import db
 from utils.env_manager import update_env_value, get_current_settings
 from utils.security import validate_broadcast_message
+from utils.stats_chart import generate_stats_chart
 from config import SUPER_ADMIN1, SUPER_ADMIN2
 
 logger = logging.getLogger(__name__)
+
+LOG_DIR = os.getenv("LOG_DIR", "logs")
+LOG_FILE = os.getenv("LOG_FILE", "bot.log")
 
 
 async def show_admin_panel(call: CallbackQuery):
@@ -44,19 +51,42 @@ async def show_statistics(call: CallbackQuery):
             await call.answer("Sizda admin huquqi yo'q", show_alert=True)
             return
 
+        # Bugungi statsni yozib qo'yamiz
+        db.record_daily_stats()
+
         total_users = db.get_total_users()
         premium_users = db.get_premium_users_count()
         free_users = total_users - premium_users
         total_channels = db.get_total_channels()
+        total_posts, posts_with_image = db.count_total_active_posts()
 
         stats_text = (
-            "<b>Bot Statistikasi</b>\n\n"
-            f"Jami foydalanuvchilar: <b>{total_users}</b>\n"
-            f"Premium foydalanuvchilar: <b>{premium_users}</b>\n"
-            f"Oddiy foydalanuvchilar: <b>{free_users}</b>\n"
-            f"Jami kanallar: <b>{total_channels}</b>\n"
+            "<b>📊 Bot Statistikasi</b>\n\n"
+            f"👥 Jami foydalanuvchilar: <b>{total_users}</b>\n"
+            f"⭐ Premium: <b>{premium_users}</b>\n"
+            f"👤 Oddiy: <b>{free_users}</b>\n\n"
+            f"📢 Jami kanallar: <b>{total_channels}</b>\n"
+            f"📝 Jami postlar: <b>{total_posts}</b>\n"
+            f"🖼 Rasmli postlar: <b>{posts_with_image}</b>\n"
         )
 
+        # Grafik yaratish
+        stats_history = db.get_stats_history(days=30)
+
+        if stats_history and len(stats_history) >= 1:
+            chart_bytes = generate_stats_chart(stats_history)
+            if chart_bytes:
+                photo = BufferedInputFile(chart_bytes, filename="stats.png")
+                await call.message.delete()
+                await call.message.answer_photo(
+                    photo=photo,
+                    caption=stats_text,
+                    reply_markup=admin_panel,
+                    parse_mode="HTML"
+                )
+                return
+
+        # Grafik yo'q bo'lsa oddiy matn
         await call.message.edit_text(
             stats_text,
             reply_markup=admin_panel,
@@ -64,6 +94,97 @@ async def show_statistics(call: CallbackQuery):
         )
     except Exception as e:
         logger.error(f"Error in show_statistics: {e}", exc_info=True)
+        await call.answer("Xatolik yuz berdi", show_alert=True)
+
+
+async def download_logs(call: CallbackQuery):
+    """24 soatlik loglarni txt fayl sifatida yuborish."""
+    try:
+        user_id = call.from_user.id
+
+        if not db.is_superadmin(user_id):
+            await call.answer("Sizda admin huquqi yo'q", show_alert=True)
+            return
+
+        await call.answer("Loglar tayyorlanmoqda...", show_alert=False)
+
+        log_path = os.path.join(LOG_DIR, LOG_FILE)
+
+        if not os.path.exists(log_path):
+            await call.message.answer(
+                "Log fayl topilmadi.",
+                reply_markup=admin_panel
+            )
+            return
+
+        # 24 soatlik loglarni filter qilish
+        cutoff = datetime.now() - timedelta(hours=24)
+        filtered_lines = []
+
+        try:
+            with open(log_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    try:
+                        # Log format: "2024-12-25 10:30:45 - ..."
+                        if len(line) >= 19:
+                            ts_str = line[:19]
+                            ts = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+                            if ts >= cutoff:
+                                filtered_lines.append(line)
+                        else:
+                            # Davomi (multiline traceback va h.k.)
+                            if filtered_lines:
+                                filtered_lines.append(line)
+                    except ValueError:
+                        # Timestamp parse qilib bo'lmasa - davomiy qator
+                        if filtered_lines:
+                            filtered_lines.append(line)
+        except Exception as e:
+            logger.error(f"Log o'qishda xatolik: {e}")
+            await call.message.answer(
+                "Log faylni o'qishda xatolik.",
+                reply_markup=admin_panel
+            )
+            return
+
+        if not filtered_lines:
+            await call.message.answer(
+                "Oxirgi 24 soatda log yozuvi topilmadi.",
+                reply_markup=admin_panel
+            )
+            return
+
+        # TXT fayl yaratish
+        content = "".join(filtered_lines)
+        # Telegram 50MB limit, lekin matnni 10MB gacha cheklaymiz
+        if len(content) > 10 * 1024 * 1024:
+            content = content[-(10 * 1024 * 1024):]
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        filename = f"logs_24h_{timestamp}.txt"
+        doc = BufferedInputFile(content.encode('utf-8'), filename=filename)
+
+        error_count = sum(1 for l in filtered_lines if ' - ERROR - ' in l)
+        warn_count = sum(1 for l in filtered_lines if ' - WARNING - ' in l)
+
+        caption = (
+            f"📋 <b>24 soatlik loglar</b>\n\n"
+            f"📄 Qatorlar: {len(filtered_lines)}\n"
+            f"❌ Xatoliklar: {error_count}\n"
+            f"⚠️ Ogohlantirishlar: {warn_count}\n"
+            f"📅 Vaqt: {cutoff.strftime('%H:%M')} → {datetime.now().strftime('%H:%M')}"
+        )
+
+        await call.message.answer_document(
+            document=doc,
+            caption=caption,
+            reply_markup=admin_panel,
+            parse_mode="HTML"
+        )
+
+        logger.info(f"Admin {user_id} downloaded 24h logs ({len(filtered_lines)} lines)")
+    except Exception as e:
+        logger.error(f"Error in download_logs: {e}", exc_info=True)
         await call.answer("Xatolik yuz berdi", show_alert=True)
 
 
@@ -156,6 +277,7 @@ async def confirm_broadcast_handler(call: CallbackQuery, state: FSMContext, bot:
             except Exception as e:
                 logger.warning(f"Failed to send to user {user[0]}: {e}")
                 failed_count += 1
+            await asyncio.sleep(0.05)  # Telegram rate limit himoyasi
 
         result_text = (
             "<b>Reklama yuborildi!</b>\n\n"

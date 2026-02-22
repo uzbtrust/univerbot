@@ -103,9 +103,6 @@ SCHEDULER_MIN_WORKERS = get_env_int("SCHEDULER_MIN_WORKERS", 3)
 SCHEDULER_MAX_WORKERS = get_env_int("SCHEDULER_MAX_WORKERS", 10)
 SCHEDULER_SCALE_THRESHOLD = get_env_int("SCHEDULER_SCALE_THRESHOLD", 5)
 
-# Redis Configuration
-REDIS_URL = get_env_str("REDIS_URL", "redis://localhost:6379/0")
-
 # Rate Limiting
 GROK_RATE_LIMIT = get_env_int("GROK_RATE_LIMIT", 30)        # req/min
 IMAGE_RATE_LIMIT = get_env_int("IMAGE_RATE_LIMIT", 10)       # req/min

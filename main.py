@@ -109,7 +109,10 @@ class BotManager:
         except Exception as e:
             logger.warning(f"Daily stats record failed: {e}")
 
-        await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🚀 Bot va Post Scheduler ishga tushdi")
+        try:
+            await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🚀 Bot va Post Scheduler ishga tushdi")
+        except Exception as e:
+            logger.warning(f"Startup notification failed: {e}")
         logger.info("Bot and Post Scheduler started successfully")
 
     async def on_shutdown(self, bot: Bot):
@@ -119,7 +122,10 @@ class BotManager:
 
         await db.close_all()
 
-        await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🛑 Bot to'xtatildi")
+        try:
+            await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🛑 Bot to'xtatildi")
+        except Exception as e:
+            logger.warning(f"Shutdown notification failed: {e}")
         logger.info("Bot shutdown")
 
     def register_handlers(self):

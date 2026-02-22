@@ -81,7 +81,7 @@ if MAX_POSTS_FREE < 1 or MAX_POSTS_FREE > 15:
 if MAX_POSTS_PREMIUM < 1 or MAX_POSTS_PREMIUM > 15:
     MAX_POSTS_PREMIUM = 15
 
-DATABASE_PATH = "database.db"
+DATABASE_URL = get_env_str("DATABASE_URL", "sqlite:///database.db")
 
 TIMEZONE = get_env_str("TIMEZONE", "Asia/Tashkent")
 

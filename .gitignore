@@ -9,6 +9,7 @@ env/
 # Database
 *.db
 database.db
+backups/
 
 # Python
 __pycache__/

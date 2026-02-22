@@ -1,12 +1,14 @@
 import logging
 import asyncio
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, BotCommand
 from aiogram.fsm.context import FSMContext
 
-from config import BOT_TOKEN, SUPER_ADMINS, ADMIN_GROUP_ID, LOG_LEVEL, LOG_FORMAT, MAX_POSTS_FREE, MAX_POSTS_PREMIUM
+from config import BOT_TOKEN, SUPER_ADMINS, ADMIN_GROUP_ID, TIMEZONE, LOG_LEVEL, LOG_FORMAT, MAX_POSTS_FREE, MAX_POSTS_PREMIUM
 from logging_config import configure_logging
 from functions.starting import greating
 from functions.callback_functions import chanelling, premium, back
@@ -24,6 +26,7 @@ from states import (
     AdminPanel, DeleteChannel, EditChannelPost, TechnicalSupport
 )
 from utils.database import db
+from utils.backup import create_backup, cleanup_old_backups
 from services.post_scheduler import PostScheduler
 
 configure_logging(LOG_LEVEL)
@@ -36,6 +39,49 @@ class BotManager:
         self.dp = Dispatcher(storage=MemoryStorage())
         self.scheduler = None
         self._stop_event = asyncio.Event()
+        self._tz = ZoneInfo(TIMEZONE)
+
+    async def _daily_tasks_loop(self):
+        """Har kuni 00:00 da backup + statistika yozish."""
+        while not self._stop_event.is_set():
+            try:
+                now = datetime.now(self._tz)
+                # Keyingi 00:00 gacha qancha vaqt qolganini hisoblash
+                tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                if now.hour > 0 or now.minute > 0 or now.second > 0:
+                    tomorrow += timedelta(days=1)
+                sleep_seconds = (tomorrow - now).total_seconds()
+                logger.info(f"Keyingi kunlik vazifalar: {sleep_seconds:.0f}s qoldi (00:00)")
+
+                try:
+                    await asyncio.wait_for(self._stop_event.wait(), timeout=sleep_seconds)
+                    break  # stop_event set bo'ldi
+                except asyncio.TimeoutError:
+                    pass  # Vaqt keldi, davom etamiz
+
+                # 00:00 — Kunlik vazifalar
+                logger.info("Kunlik vazifalar boshlanmoqda (00:00)...")
+
+                # 1. Statistikani yozish
+                try:
+                    db.record_daily_stats()
+                    logger.info("Kunlik statistika yozildi")
+                except Exception as e:
+                    logger.error(f"Kunlik statistika xatolik: {e}")
+
+                # 2. Backup yaratish
+                try:
+                    today_str = datetime.now(self._tz).strftime("%Y-%m-%d")
+                    backup_path = create_backup(f"backup_{today_str}.sql")
+                    if backup_path:
+                        logger.info(f"Kunlik backup tayyor: {backup_path}")
+                    cleanup_old_backups(keep_last=7)
+                except Exception as e:
+                    logger.error(f"Kunlik backup xatolik: {e}")
+
+            except Exception as e:
+                logger.error(f"Daily tasks loop xatolik: {e}", exc_info=True)
+                await asyncio.sleep(60)
 
     async def on_startup(self, bot: Bot):
         for admin_id in SUPER_ADMINS:
@@ -52,7 +98,10 @@ class BotManager:
         self.scheduler = PostScheduler(bot)
         asyncio.create_task(self.scheduler.run(stop_event=self._stop_event))
 
-        # Kunlik statistikani yozish
+        # Kunlik vazifalar loopini ishga tushirish (00:00 da backup + stats)
+        asyncio.create_task(self._daily_tasks_loop())
+
+        # Boshlang'ich statistikani yozish
         try:
             db.record_daily_stats()
         except Exception as e:

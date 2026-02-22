@@ -39,7 +39,7 @@ class PostScheduler:
         scheduled_posts = []
 
         # Free kanallar — SQL da filter
-        free_channels = db.execute_query(
+        free_channels = await db.execute_query(
             """SELECT user_id, id,
                       post1, theme1, post2, theme2, post3, theme3
                FROM channel
@@ -75,7 +75,7 @@ class PostScheduler:
         premium_where = " OR ".join([f"post{i} = ?" for i in range(1, 16)])
         premium_params = tuple([current_time] * 15)
 
-        premium_channels = db.execute_query(
+        premium_channels = await db.execute_query(
             f"""SELECT user_id, id,
                       post1, theme1, post2, theme2, post3, theme3,
                       post4, theme4, post5, theme5, post6, theme6,

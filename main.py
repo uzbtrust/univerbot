@@ -64,7 +64,7 @@ class BotManager:
 
                 # 1. Statistikani yozish
                 try:
-                    db.record_daily_stats()
+                    await db.record_daily_stats()
                     logger.info("Kunlik statistika yozildi")
                 except Exception as e:
                     logger.error(f"Kunlik statistika xatolik: {e}")
@@ -72,7 +72,7 @@ class BotManager:
                 # 2. Backup yaratish
                 try:
                     today_str = datetime.now(self._tz).strftime("%Y-%m-%d")
-                    backup_path = create_backup(f"backup_{today_str}.sql")
+                    backup_path = await create_backup(f"backup_{today_str}.sql")
                     if backup_path:
                         logger.info(f"Kunlik backup tayyor: {backup_path}")
                     cleanup_old_backups(keep_last=7)
@@ -84,8 +84,10 @@ class BotManager:
                 await asyncio.sleep(60)
 
     async def on_startup(self, bot: Bot):
+        await db.initialize()
+
         for admin_id in SUPER_ADMINS:
-            db.add_superadmin(admin_id)
+            await db.add_superadmin(admin_id)
 
         commands = [
             BotCommand(command="start", description="Botni ishga tushirish"),
@@ -103,7 +105,7 @@ class BotManager:
 
         # Boshlang'ich statistikani yozish
         try:
-            db.record_daily_stats()
+            await db.record_daily_stats()
         except Exception as e:
             logger.warning(f"Daily stats record failed: {e}")
 
@@ -115,7 +117,7 @@ class BotManager:
             self._stop_event.set()
             self.scheduler.stop()
 
-        db.close_all()
+        await db.close_all()
 
         await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🛑 Bot to'xtatildi")
         logger.info("Bot shutdown")

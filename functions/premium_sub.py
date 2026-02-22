@@ -30,7 +30,7 @@ async def show_premium_cmd(message: Message):
     try:
         user_id = message.from_user.id
 
-        if db.is_premium_user(user_id):
+        if await db.is_premium_user(user_id):
             await message.answer(
                 "Siz allaqachon premium foydalanuvchisiz! 👑",
                 parse_mode="HTML"
@@ -244,13 +244,13 @@ async def approving(call: CallbackQuery):
         start_date = datetime.now()
         end_date = start_date + timedelta(days=days) if days > 0 else start_date + timedelta(days=30)
 
-        db.update_user_subscription(
+        await db.update_user_subscription(
             user_id,
             subscription=True,
             premium_type=premium_type or "unknown"
         )
 
-        db.execute_query(
+        await db.execute_query(
             "UPDATE users SET start_date = ?, end_date = ? WHERE id = ?",
             (start_date.isoformat(), end_date.isoformat(), user_id)
         )
@@ -283,7 +283,7 @@ async def rejecting(call: CallbackQuery):
         await call.message.delete()
         await call.message.answer("Obuna rad etildi!")
 
-        db.update_user_subscription(user_id, subscription=False)
+        await db.update_user_subscription(user_id, subscription=False)
 
         await call.bot.send_message(
             chat_id=user_id,

@@ -84,9 +84,9 @@ async def show_channels_list(call: CallbackQuery, bot: Bot = None):
     try:
         user_id = call.from_user.id
 
-        is_premium = db.is_premium_user(user_id)
+        is_premium = await db.is_premium_user(user_id)
 
-        channels = db.get_user_channels(user_id, premium=is_premium)
+        channels = await db.get_user_channels(user_id, premium=is_premium)
 
         if not channels:
             await call.message.edit_text(
@@ -112,9 +112,9 @@ async def show_channels_list(call: CallbackQuery, bot: Bot = None):
 async def show_channels_for_add_post(call: CallbackQuery, bot: Bot = None):
     try:
         user_id = call.from_user.id
-        is_premium = db.is_premium_user(user_id)
+        is_premium = await db.is_premium_user(user_id)
 
-        channels = db.get_user_channels(user_id, premium=is_premium)
+        channels = await db.get_user_channels(user_id, premium=is_premium)
 
         if not channels:
             back_kb = p_back_to_main if is_premium else back_to_main
@@ -164,9 +164,9 @@ async def show_channels_list_cmd(message: Message, bot: Bot = None):
     try:
         user_id = message.from_user.id
 
-        is_premium = db.is_premium_user(user_id)
+        is_premium = await db.is_premium_user(user_id)
 
-        channels = db.get_user_channels(user_id, premium=is_premium)
+        channels = await db.get_user_channels(user_id, premium=is_premium)
 
         if not channels:
             await message.answer(
@@ -231,7 +231,7 @@ async def delete_channel_confirmed(call: CallbackQuery, state: FSMContext):
             await state.clear()
             return
 
-        db.delete_channel(channel_id, premium=is_premium)
+        await db.delete_channel(channel_id, premium=is_premium)
 
         await call.message.edit_text(
             "✅ Kanal muvaffaqiyatli o'chirildi!",
@@ -280,7 +280,7 @@ async def show_posts_for_time_edit(call: CallbackQuery):
         channel_id = int(parts[1])
         is_premium = parts[2] == "p"
 
-        posts = db.get_channel_posts(channel_id, premium=is_premium)
+        posts = await db.get_channel_posts(channel_id, premium=is_premium)
 
         if not posts:
             await call.answer("Hech qanday post topilmadi", show_alert=True)
@@ -305,7 +305,7 @@ async def show_posts_for_theme_edit(call: CallbackQuery):
         channel_id = int(parts[1])
         is_premium = parts[2] == "p"
 
-        posts = db.get_channel_posts(channel_id, premium=is_premium)
+        posts = await db.get_channel_posts(channel_id, premium=is_premium)
 
         if not posts:
             await call.answer("Hech qanday post topilmadi", show_alert=True)
@@ -330,7 +330,7 @@ async def show_posts_for_delete(call: CallbackQuery):
         channel_id = int(parts[1])
         is_premium = parts[2] == "p"
 
-        posts = db.get_channel_posts(channel_id, premium=is_premium)
+        posts = await db.get_channel_posts(channel_id, premium=is_premium)
 
         if not posts:
             await call.answer("Hech qanday post topilmadi", show_alert=True)
@@ -394,7 +394,7 @@ async def process_new_time(message: Message, state: FSMContext):
         is_premium = data.get("edit_is_premium")
 
         try:
-            db.update_single_post(channel_id, post_num, time=message.text, premium=is_premium)
+            await db.update_single_post(channel_id, post_num, time=message.text, premium=is_premium)
         except ValueError:
             await message.answer(
                 "⚠️ Bu kanal post vaqti oxirgi tahrirdan 24 soat o'tmagani uchun o'zgartirib bo'lmaydi. Keyinroq urinib ko'ring.",
@@ -470,7 +470,7 @@ async def process_new_theme(message: Message, state: FSMContext):
             )
             return
 
-        db.update_single_post(channel_id, post_num, theme=message.text, premium=is_premium)
+        await db.update_single_post(channel_id, post_num, theme=message.text, premium=is_premium)
 
         await message.answer(
             "✅ Mavzu muvaffaqiyatli o'zgartirildi!",
@@ -523,7 +523,7 @@ async def delete_post_confirmed(call: CallbackQuery, state: FSMContext):
         post_num = data.get("delete_post_num")
         is_premium = data.get("delete_post_is_premium")
 
-        db.delete_single_post(channel_id, post_num, premium=is_premium)
+        await db.delete_single_post(channel_id, post_num, premium=is_premium)
 
         await call.message.edit_text(
             "✅ Post muvaffaqiyatli o'chirildi!",
@@ -561,7 +561,7 @@ async def add_post_start(call: CallbackQuery, state: FSMContext):
         logger.info(f"add_post_start: channel_id={channel_id}, is_premium={is_premium}")
 
         max_posts = MAX_POSTS_PREMIUM if is_premium else MAX_POSTS_FREE
-        current_posts = db.get_channel_posts(channel_id, premium=is_premium)
+        current_posts = await db.get_channel_posts(channel_id, premium=is_premium)
         logger.info(f"add_post_start: current_posts={len(current_posts)}, max_posts={max_posts}")
 
         if len(current_posts) >= max_posts:
@@ -572,7 +572,7 @@ async def add_post_start(call: CallbackQuery, state: FSMContext):
             )
             return
 
-        next_post_num = db.get_next_available_post_num(channel_id, premium=is_premium)
+        next_post_num = await db.get_next_available_post_num(channel_id, premium=is_premium)
 
         if next_post_num is None or next_post_num > max_posts:
             await call.answer("Bo'sh slot topilmadi!", show_alert=True)
@@ -688,7 +688,7 @@ async def process_add_post_theme(message: Message, state: FSMContext):
             )
             await state.set_state(EditChannelPost.ADD_POST_IMAGE)
         else:
-            db.add_new_post(channel_id, post_num, post_time, message.text, premium=is_premium, with_image='no')
+            await db.add_new_post(channel_id, post_num, post_time, message.text, premium=is_premium, with_image='no')
 
             await message.answer(
                 f"✅ <b>Post muvaffaqiyatli qo'shildi!</b>\n\n"
@@ -724,7 +724,7 @@ async def process_add_post_image(call: CallbackQuery, state: FSMContext):
 
         with_image = 'yes' if call.data == 'p_image_yes' else 'no'
 
-        db.add_new_post(channel_id, post_num, post_time, post_theme, premium=True, with_image=with_image)
+        await db.add_new_post(channel_id, post_num, post_time, post_theme, premium=True, with_image=with_image)
 
         image_text = "Rasm bilan" if with_image == 'yes' else "Rasmsiz"
 

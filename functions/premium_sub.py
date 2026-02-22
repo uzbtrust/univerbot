@@ -11,7 +11,7 @@ from utils.helpers import format_payment_message, extract_user_id_from_caption
 from config import (
     MESSAGES, CARD_NUMBER, CARD_NAME, CARD_SURNAME,
     WEEKLY_PRICE, DAY15_PRICE, MONTHLY_PRICE,
-    SUPER_ADMINS
+    ADMIN_GROUP_ID
 )
 
 logger = logging.getLogger(__name__)
@@ -66,31 +66,27 @@ async def _send_cheque_to_admin(
             subscription_type
         )
 
-        admins_to_notify = SUPER_ADMINS
+        try:
+            if message.photo:
+                await bot.send_photo(
+                    chat_id=ADMIN_GROUP_ID,
+                    photo=message.photo[-1].file_id,
+                    caption=caption,
+                    reply_markup=cheque_check
+                )
+                return True
+            elif message.document:
+                await bot.send_document(
+                    chat_id=ADMIN_GROUP_ID,
+                    document=message.document.file_id,
+                    caption=caption,
+                    reply_markup=cheque_check
+                )
+                return True
+        except Exception as e:
+            logger.error(f"Failed to send cheque to admin group: {e}")
 
-        success = False
-        for admin_id in admins_to_notify:
-            try:
-                if message.photo:
-                    await bot.send_photo(
-                        chat_id=admin_id,
-                        photo=message.photo[-1].file_id,
-                        caption=caption,
-                        reply_markup=cheque_check
-                    )
-                    success = True
-                elif message.document:
-                    await bot.send_document(
-                        chat_id=admin_id,
-                        document=message.document.file_id,
-                        caption=caption,
-                        reply_markup=cheque_check
-                    )
-                    success = True
-            except Exception as e:
-                logger.error(f"Failed to send cheque to admin {admin_id}: {e}")
-
-        return success
+        return False
 
     except Exception as e:
         logger.error(f"Error sending cheque to admin: {e}", exc_info=True)
@@ -254,13 +250,10 @@ async def approving(call: CallbackQuery):
             premium_type=premium_type or "unknown"
         )
 
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE users SET start_date = ?, end_date = ? WHERE id = ?",
-                (start_date.isoformat(), end_date.isoformat(), user_id)
-            )
-            conn.commit()
+        db.execute_query(
+            "UPDATE users SET start_date = ?, end_date = ? WHERE id = ?",
+            (start_date.isoformat(), end_date.isoformat(), user_id)
+        )
 
         await call.message.delete()
         await call.message.answer(f"Obuna tasdiqlandi! ({premium_type}, {days} kun)")

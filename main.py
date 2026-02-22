@@ -6,7 +6,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, BotCommand
 from aiogram.fsm.context import FSMContext
 
-from config import BOT_TOKEN, SUPER_ADMINS, SUPER_ADMIN1, LOG_LEVEL, LOG_FORMAT, MAX_POSTS_FREE, MAX_POSTS_PREMIUM
+from config import BOT_TOKEN, SUPER_ADMINS, ADMIN_GROUP_ID, LOG_LEVEL, LOG_FORMAT, MAX_POSTS_FREE, MAX_POSTS_PREMIUM
 from logging_config import configure_logging
 from functions.starting import greating
 from functions.callback_functions import chanelling, premium, back
@@ -57,7 +57,7 @@ class BotManager:
         self.scheduler = PostScheduler()
         asyncio.create_task(self.scheduler.run(stop_event=self._stop_event))
 
-        await bot.send_message(chat_id=SUPER_ADMIN1, text="🚀 Bot va Post Scheduler ishga tushdi")
+        await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🚀 Bot va Post Scheduler ishga tushdi")
         logger.info("Bot and Post Scheduler started successfully")
 
     async def on_shutdown(self, bot: Bot):
@@ -68,7 +68,7 @@ class BotManager:
         await broker.shutdown()
         db.close_all()
 
-        await bot.send_message(chat_id=SUPER_ADMIN1, text="🛑 Bot to'xtatildi")
+        await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🛑 Bot to'xtatildi")
         logger.info("Bot shutdown")
 
     def register_handlers(self):

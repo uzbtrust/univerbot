@@ -6,7 +6,7 @@ from aiogram import Bot
 from states import TechnicalSupport
 from keyboards.inline import p_back_to_main
 from utils.database import db
-from config import SUPER_ADMIN1
+from config import ADMIN_GROUP_ID
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ async def process_support_message(message: Message, state: FSMContext, bot: Bot)
         )
 
         await bot.send_message(
-            chat_id=SUPER_ADMIN1,
+            chat_id=ADMIN_GROUP_ID,
             text=admin_message,
             parse_mode='HTML'
         )

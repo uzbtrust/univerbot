@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram import Bot
 
-from states import Payment
+from states import Payment, RejectReason
 from keyboards.inline import non_premium, premium, cheque_check, premium_buy
 from utils.database import db
 from utils.helpers import format_payment_message, extract_user_id_from_caption
@@ -272,7 +272,7 @@ async def approving(call: CallbackQuery):
         await call.answer("Xatolik yuz berdi", show_alert=True)
 
 
-async def rejecting(call: CallbackQuery):
+async def rejecting(call: CallbackQuery, state: FSMContext):
     try:
         user_id = extract_user_id_from_caption(call.message.caption)
         if not user_id:
@@ -280,18 +280,77 @@ async def rejecting(call: CallbackQuery):
             await call.answer("Xatolik: Foydalanuvchi topilmadi", show_alert=True)
             return
 
-        await call.message.delete()
-        await call.message.answer("Obuna rad etildi!")
+        # User ID ni saqlash va sabab so'rash
+        await state.update_data(reject_user_id=user_id)
 
-        await db.update_user_subscription(user_id, subscription=False)
+        if call.message.photo or call.message.document:
+            await call.message.edit_reply_markup(reply_markup=None)
+            await call.message.answer(
+                f"<b>Rad etish sababini yozing:</b>\n"
+                f"(User ID: <code>{user_id}</code>)",
+                parse_mode='HTML'
+            )
+        else:
+            await call.message.edit_text(
+                f"<b>Rad etish sababini yozing:</b>\n"
+                f"(User ID: <code>{user_id}</code>)",
+                parse_mode='HTML'
+            )
 
-        await call.bot.send_message(
-            chat_id=user_id,
-            text="Kechirasiz, sizning obunangiz rad etildi. "
-                 "Iltimos to'lovni qayta tekshiring.",
-            reply_markup=non_premium
-        )
-        logger.info(f"Subscription rejected for user {user_id}")
+        await state.set_state(RejectReason.WAITING_REASON)
+        logger.info(f"Rejection reason requested for user {user_id}")
+
     except Exception as e:
         logger.error(f"Error in rejecting: {e}", exc_info=True)
         await call.answer("Xatolik yuz berdi", show_alert=True)
+
+
+async def process_reject_reason(message: Message, state: FSMContext, bot: Bot):
+    """Admin rad etish sababini yozgandan keyin."""
+    try:
+        data = await state.get_data()
+        user_id = data.get("reject_user_id")
+
+        if not user_id:
+            await message.answer("Xatolik: foydalanuvchi topilmadi.")
+            await state.clear()
+            return
+
+        reason = message.text or "Sabab ko'rsatilmadi"
+
+        await db.update_user_subscription(user_id, subscription=False)
+
+        # Guruhga tasdiqlash
+        confirm_msg = await message.answer(
+            f"<b>Obuna rad etildi</b>\n\n"
+            f"User ID: <code>{user_id}</code>\n"
+            f"Sabab: {reason}",
+            parse_mode='HTML'
+        )
+
+        # Userga sabab bilan xabar
+        await bot.send_message(
+            chat_id=user_id,
+            text=f"<b>Obunangiz rad etildi.</b>\n\n"
+                 f"<b>Sabab:</b> {reason}\n\n"
+                 f"<i>Javob yozishingiz mumkin.</i>",
+            parse_mode='HTML',
+            reply_markup=non_premium
+        )
+
+        # Suhbat tizimiga qo'shish (user javob yozishi mumkin)
+        from functions.tech_support import _save_mapping
+        _save_mapping(user_id, confirm_msg.message_id)
+
+        # User state ni WAITING_REPLY ga o'rnatish
+        from aiogram.fsm.storage.base import StorageKey
+        from states import TechnicalSupport
+        # Admin state ni tozalash
+        await state.clear()
+
+        logger.info(f"Subscription rejected for user {user_id}: {reason}")
+
+    except Exception as e:
+        logger.error(f"Error in process_reject_reason: {e}", exc_info=True)
+        await message.answer("Xatolik yuz berdi.")
+        await state.clear()

@@ -23,7 +23,8 @@ from states import (
     Channel, PremiumChannel, Payment,
     ChangeTimeState, ChangeThemeState,
     ChangeTimePremiumState, ChangeThemePremiumState,
-    AdminPanel, DeleteChannel, EditChannelPost, TechnicalSupport
+    AdminPanel, DeleteChannel, EditChannelPost, TechnicalSupport,
+    RejectReason
 )
 from utils.database import db
 from utils.backup import create_backup, cleanup_old_backups
@@ -131,6 +132,16 @@ class BotManager:
     def register_handlers(self):
         self.dp.startup.register(self.on_startup)
         self.dp.shutdown.register(self.on_shutdown)
+
+        # Guruhda admin reply handler (texnik yordam + chek suhbat) — BIRINCHI
+        async def handle_admin_group_reply(message: Message):
+            await tech_support.handle_group_reply(message, self.bot, self.dp.storage)
+
+        self.dp.message.register(
+            handle_admin_group_reply,
+            F.chat.id == ADMIN_GROUP_ID,
+            F.reply_to_message
+        )
 
         self.dp.message.register(greating, CommandStart())
         self.dp.message.register(channel_management.show_channels_list_cmd, Command("channels"))
@@ -260,6 +271,24 @@ class BotManager:
         self.dp.message.register(
             handle_support_message,
             TechnicalSupport.WAITING_MESSAGE
+        )
+
+        # User suhbat davomi (admin javobiga reply)
+        async def handle_support_reply(message: Message, state: FSMContext):
+            await tech_support.process_support_reply(message, state, self.bot)
+
+        self.dp.message.register(
+            handle_support_reply,
+            TechnicalSupport.WAITING_REPLY
+        )
+
+        # Chek rad etish sababini yozish
+        async def handle_reject_reason(message: Message, state: FSMContext):
+            await premium_sub.process_reject_reason(message, state, self.bot)
+
+        self.dp.message.register(
+            handle_reject_reason,
+            RejectReason.WAITING_REASON
         )
 
         logger.info("All handlers registered successfully")

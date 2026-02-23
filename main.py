@@ -181,6 +181,7 @@ class BotManager:
         self.dp.callback_query.register(admin_panel.confirm_broadcast_handler, F.data == "confirm_broadcast")
         self.dp.callback_query.register(admin_panel.cancel_broadcast_handler, F.data == "cancel_broadcast")
         self.dp.callback_query.register(admin_panel.download_logs, F.data == "admin_logs")
+        self.dp.callback_query.register(admin_panel.download_backup, F.data == "admin_backups")
 
         self.dp.callback_query.register(admin_panel.show_settings_menu, F.data == "admin_settings")
         self.dp.callback_query.register(admin_panel.show_payment_settings, F.data == "settings_payment")

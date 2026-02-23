@@ -102,6 +102,7 @@ admin_panel = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='📊 Statistika', callback_data='admin_stats')],
     [InlineKeyboardButton(text='📢 Xabar yuborish', callback_data='admin_broadcast')],
     [InlineKeyboardButton(text='📋 24h Loglar', callback_data='admin_logs')],
+    [InlineKeyboardButton(text='💾 Backuplar', callback_data='admin_backups')],
     [InlineKeyboardButton(text='⚙️ Bot sozlamalari', callback_data='admin_settings')],
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='back')]
 ])

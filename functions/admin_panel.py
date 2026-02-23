@@ -188,6 +188,65 @@ async def download_logs(call: CallbackQuery):
         await call.answer("Xatolik yuz berdi", show_alert=True)
 
 
+async def download_backup(call: CallbackQuery):
+    """Oxirgi backup faylni yuklab olish."""
+    try:
+        user_id = call.from_user.id
+
+        if not await db.is_superadmin(user_id):
+            await call.answer("Sizda admin huquqi yo'q", show_alert=True)
+            return
+
+        await call.answer("Backup tayyorlanmoqda...", show_alert=False)
+
+        backup_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backups")
+
+        if not os.path.exists(backup_dir):
+            await call.message.answer("Backup papkasi topilmadi.", reply_markup=admin_panel)
+            return
+
+        sql_files = sorted(
+            [f for f in os.listdir(backup_dir) if f.endswith(".sql")],
+            key=lambda f: os.path.getmtime(os.path.join(backup_dir, f)),
+            reverse=True
+        )
+
+        if not sql_files:
+            await call.message.answer("Hech qanday backup topilmadi.", reply_markup=admin_panel)
+            return
+
+        latest = sql_files[0]
+        latest_path = os.path.join(backup_dir, latest)
+        file_size = os.path.getsize(latest_path)
+        mod_time = datetime.fromtimestamp(os.path.getmtime(latest_path))
+
+        with open(latest_path, 'rb') as f:
+            content = f.read()
+
+        doc = BufferedInputFile(content, filename=latest)
+
+        size_kb = file_size / 1024
+        caption = (
+            f"💾 <b>Oxirgi backup</b>\n\n"
+            f"📄 Fayl: {latest}\n"
+            f"📦 Hajmi: {size_kb:.1f} KB\n"
+            f"📅 Yaratilgan: {mod_time.strftime('%Y-%m-%d %H:%M')}\n"
+            f"🗂 Jami backuplar: {len(sql_files)}/7"
+        )
+
+        await call.message.answer_document(
+            document=doc,
+            caption=caption,
+            reply_markup=admin_panel,
+            parse_mode="HTML"
+        )
+
+        logger.info(f"Admin {user_id} downloaded backup: {latest} ({size_kb:.1f} KB)")
+    except Exception as e:
+        logger.error(f"Error in download_backup: {e}", exc_info=True)
+        await call.answer("Xatolik yuz berdi", show_alert=True)
+
+
 async def request_broadcast_message(call: CallbackQuery, state: FSMContext):
     try:
         user_id = call.from_user.id

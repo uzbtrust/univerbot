@@ -61,6 +61,11 @@ class EditChannelPost(StatesGroup):
 
 class TechnicalSupport(StatesGroup):
     WAITING_MESSAGE = State()
+    WAITING_REPLY = State()
+
+
+class RejectReason(StatesGroup):
+    WAITING_REASON = State()
 
 
 class AddPost(StatesGroup):

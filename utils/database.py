@@ -113,6 +113,16 @@ class DatabaseManager:
                 )
             '''))
             await conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS referrals (
+                    id INTEGER PRIMARY KEY,
+                    referrer_id BIGINT NOT NULL,
+                    referred_id BIGINT NOT NULL UNIQUE,
+                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    activated BOOLEAN DEFAULT FALSE,
+                    activated_at TIMESTAMP
+                )
+            '''))
+            await conn.execute(text('''
                 CREATE TABLE IF NOT EXISTS daily_stats (
                     date TEXT PRIMARY KEY,
                     total_users INTEGER DEFAULT 0,
@@ -127,6 +137,8 @@ class DatabaseManager:
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_sub ON users(subscription)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_channel_uid ON channel(user_id)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pchannel_uid ON premium_channel(user_id)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_ref_referrer ON referrals(referrer_id)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_ref_activated ON referrals(referrer_id, activated)"))
 
             for i in range(1, 4):
                 await conn.execute(text(f"CREATE INDEX IF NOT EXISTS idx_ch_post{i} ON channel(post{i})"))
@@ -139,6 +151,8 @@ class DatabaseManager:
                 "ALTER TABLE premium_channel ADD COLUMN IF NOT EXISTS with_image BOOLEAN DEFAULT FALSE",
                 "ALTER TABLE channel ADD COLUMN IF NOT EXISTS last_edit_time TIMESTAMP",
                 "ALTER TABLE premium_channel ADD COLUMN IF NOT EXISTS last_edit_time TIMESTAMP",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_base_date TIMESTAMP",
             ]
             for i in range(1, 16):
                 alter_stmts.append(f"ALTER TABLE premium_channel ADD COLUMN IF NOT EXISTS image{i} TEXT DEFAULT 'no'")
@@ -447,6 +461,93 @@ class DatabaseManager:
             "FROM daily_stats ORDER BY date DESC LIMIT ?",
             (days,), fetch_all=True
         )
+
+    # ============== Referral Methods ==============
+
+    async def add_referral(self, referrer_id: int, referred_id: int):
+        await self.execute_query(
+            "INSERT INTO referrals (referrer_id, referred_id) VALUES (?, ?) ON CONFLICT (referred_id) DO NOTHING",
+            (referrer_id, referred_id)
+        )
+        await self.execute_query(
+            "UPDATE users SET referred_by = ? WHERE id = ?",
+            (referrer_id, referred_id)
+        )
+
+    async def activate_referral(self, referred_id: int):
+        await self.execute_query(
+            "UPDATE referrals SET activated = TRUE, activated_at = CURRENT_TIMESTAMP WHERE referred_id = ? AND activated = FALSE",
+            (referred_id,)
+        )
+
+    async def get_referral_count(self, referrer_id: int, activated_only: bool = True) -> int:
+        if activated_only:
+            result = await self.execute_query(
+                "SELECT COUNT(*) FROM referrals WHERE referrer_id = ? AND activated = TRUE",
+                (referrer_id,), fetch_one=True
+            )
+        else:
+            result = await self.execute_query(
+                "SELECT COUNT(*) FROM referrals WHERE referrer_id = ?",
+                (referrer_id,), fetch_one=True
+            )
+        return result[0] if result else 0
+
+    async def get_referrer_of(self, referred_id: int) -> int | None:
+        result = await self.execute_query(
+            "SELECT referrer_id FROM referrals WHERE referred_id = ?",
+            (referred_id,), fetch_one=True
+        )
+        return result[0] if result else None
+
+    async def has_activated_referral(self, referred_id: int) -> bool:
+        result = await self.execute_query(
+            "SELECT 1 FROM referrals WHERE referred_id = ? AND activated = TRUE",
+            (referred_id,), fetch_one=True
+        )
+        return result is not None
+
+    async def get_top_referrers(self, limit: int = 25):
+        return await self.execute_query(
+            "SELECT referrer_id, COUNT(*) as cnt FROM referrals WHERE activated = TRUE "
+            "GROUP BY referrer_id ORDER BY cnt DESC LIMIT ?",
+            (limit,), fetch_all=True
+        )
+
+    async def get_referral_stats(self) -> dict:
+        total = await self.execute_query(
+            "SELECT COUNT(*) FROM referrals", fetch_one=True
+        )
+        activated = await self.execute_query(
+            "SELECT COUNT(*) FROM referrals WHERE activated = TRUE", fetch_one=True
+        )
+        participants = await self.execute_query(
+            "SELECT COUNT(DISTINCT referrer_id) FROM referrals", fetch_one=True
+        )
+        return {
+            'total_referrals': total[0] if total else 0,
+            'activated_referrals': activated[0] if activated else 0,
+            'total_participants': participants[0] if participants else 0,
+        }
+
+    async def get_user_premium_info(self, user_id: int) -> tuple | None:
+        return await self.execute_query(
+            "SELECT subscription, premium_type, start_date, end_date, referral_base_date FROM users WHERE id = ?",
+            (user_id,), fetch_one=True
+        )
+
+    async def set_referral_base_date(self, user_id: int, base_date: str):
+        await self.execute_query(
+            "UPDATE users SET referral_base_date = ? WHERE id = ?",
+            (base_date, user_id)
+        )
+
+    async def get_referral_base_date(self, user_id: int) -> str | None:
+        result = await self.execute_query(
+            "SELECT referral_base_date FROM users WHERE id = ?",
+            (user_id,), fetch_one=True
+        )
+        return result[0] if result and result[0] else None
 
 
 db = DatabaseManager()

@@ -19,6 +19,7 @@ from functions import my_chann
 from functions import admin_panel
 from functions import channel_management
 from functions import tech_support
+from functions import referral
 from states import (
     Channel, PremiumChannel, Payment,
     ChangeTimeState, ChangeThemeState,
@@ -208,6 +209,11 @@ class BotManager:
         self.dp.callback_query.register(channel_management.request_new_time, F.data.startswith("select_time:"))
 
         self.dp.callback_query.register(tech_support.request_support, F.data == "tech_support")
+
+        # Referral handlers (Ramazon)
+        self.dp.callback_query.register(referral.show_ramadan_gift, F.data == "ramadan_gift")
+        self.dp.callback_query.register(referral.show_referral_stats, F.data == "referral_stats")
+        self.dp.callback_query.register(referral.show_admin_referral_stats, F.data == "admin_referral")
         self.dp.callback_query.register(channel_management.request_new_theme, F.data.startswith("select_theme:"))
         self.dp.callback_query.register(channel_management.confirm_delete_post, F.data.startswith("confirm_delete_post:"))
         self.dp.callback_query.register(channel_management.delete_post_confirmed, F.data == "delete_post_yes")

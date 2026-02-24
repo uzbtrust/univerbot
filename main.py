@@ -95,6 +95,7 @@ class BotManager:
             BotCommand(command="start", description="Botni ishga tushirish"),
             BotCommand(command="channels", description="Kanallarni boshqarish"),
             BotCommand(command="premium", description="Premium sotib olish"),
+            BotCommand(command="referral", description="Ramazon sovg'asi 🎁"),
             BotCommand(command="help", description="Yordam"),
         ]
         await bot.set_my_commands(commands)
@@ -211,6 +212,7 @@ class BotManager:
         self.dp.callback_query.register(tech_support.request_support, F.data == "tech_support")
 
         # Referral handlers (Ramazon)
+        self.dp.message.register(referral.show_ramadan_gift_cmd, Command("referral"))
         self.dp.callback_query.register(referral.show_ramadan_gift, F.data == "ramadan_gift")
         self.dp.callback_query.register(referral.show_referral_stats, F.data == "referral_stats")
         self.dp.callback_query.register(referral.show_admin_referral_stats, F.data == "admin_referral")

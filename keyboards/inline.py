@@ -165,20 +165,19 @@ referral_back = InlineKeyboardMarkup(inline_keyboard=[
 
 
 def build_ramadan_gift_kb(bot_username: str, user_id: int):
-    """Ramazon sovg'asi uchun keyboard — forward + share + stats + orqaga."""
-    from urllib.parse import quote
-    ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
-    share_text = (
-        "🎁 Ramazon sovg'asi!\n\n"
-        "Menejer AI botida do'stlaringizni taklif qiling va bepul Premium oling!\n\n"
-        "🥉 5 ta do'st = 1 hafta Premium\n"
-        "🥈 10 ta do'st = 2 hafta Premium\n"
-        "🥇 18 ta do'st = 1 oy Premium\n\n"
-        "👇 Shu havolani bosing va botni ishga tushiring:"
-    )
-    share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote(share_text)}"
+    """Ramazon sovg'asi uchun keyboard — inline forward + stats + orqaga."""
+    from aiogram.types import SwitchInlineQueryChosenChat
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='📤 Do\'stlarga ulashish', url=share_url)],
+        [InlineKeyboardButton(
+            text='📤 Do\'stlarga yuborish',
+            switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+                query=f"ref_{user_id}",
+                allow_user_chats=True,
+                allow_group_chats=True,
+                allow_bot_chats=False,
+                allow_channel_chats=True
+            )
+        )],
         [InlineKeyboardButton(text='📊 Mening statistikam', callback_data='referral_stats')],
         [InlineKeyboardButton(text='◀️ Orqaga', callback_data='back')]
     ])

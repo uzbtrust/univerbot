@@ -214,6 +214,9 @@ class BotManager:
         self.dp.callback_query.register(referral.show_ramadan_gift, F.data == "ramadan_gift")
         self.dp.callback_query.register(referral.show_referral_stats, F.data == "referral_stats")
         self.dp.callback_query.register(referral.show_admin_referral_stats, F.data == "admin_referral")
+
+        # Inline query handler (referral forward)
+        self.dp.inline_query.register(referral.handle_inline_query)
         self.dp.callback_query.register(channel_management.request_new_theme, F.data.startswith("select_theme:"))
         self.dp.callback_query.register(channel_management.confirm_delete_post, F.data.startswith("confirm_delete_post:"))
         self.dp.callback_query.register(channel_management.delete_post_confirmed, F.data == "delete_post_yes")

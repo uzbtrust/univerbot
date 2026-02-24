@@ -5,10 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from aiogram.types import (
-    CallbackQuery, FSInputFile, InlineQuery,
-    InlineQueryResultArticle, InputTextMessageContent
-)
+from aiogram.types import CallbackQuery, FSInputFile
 from aiogram import Bot
 
 from utils.database import db
@@ -369,47 +366,3 @@ async def show_admin_referral_stats(call: CallbackQuery):
         await call.answer("Xatolik yuz berdi", show_alert=True)
 
 
-async def handle_inline_query(inline_query: InlineQuery):
-    """Inline query handler — do'stga referral post yuborish."""
-    try:
-        query = inline_query.query.strip()
-        user_id = inline_query.from_user.id
-
-        # ref_USERID formatini parse qilish
-        if query.startswith("ref_"):
-            try:
-                ref_user_id = int(query.replace("ref_", ""))
-            except (ValueError, TypeError):
-                ref_user_id = user_id
-        else:
-            ref_user_id = user_id
-
-        bot_info = await inline_query.bot.get_me()
-        bot_username = bot_info.username
-        ref_link = f"https://t.me/{bot_username}?start=ref_{ref_user_id}"
-
-        message_text = (
-            f"🎁 <b>Ramazon sovg'asi!</b>\n\n"
-            f"Menejer AI botida do'stlaringizni taklif qiling va <b>bepul Premium</b> oling!\n\n"
-            f"🥉 {REFERRAL_TIER1_COUNT} ta do'st = <b>{REFERRAL_TIER1_DAYS} kun</b> Premium\n"
-            f"🥈 {REFERRAL_TIER2_COUNT} ta do'st = <b>{REFERRAL_TIER2_DAYS} kun</b> Premium\n"
-            f"🥇 {REFERRAL_TIER3_COUNT} ta do'st = <b>{REFERRAL_TIER3_DAYS} kun</b> Premium\n\n"
-            f"👇 <b>Boshlash uchun havolani bosing:</b>\n"
-            f"{ref_link}"
-        )
-
-        result = InlineQueryResultArticle(
-            id="referral_post",
-            title="🎁 Ramazon sovg'asi",
-            description=f"Do'stlaringizni taklif qiling — bepul Premium oling!",
-            input_message_content=InputTextMessageContent(
-                message_text=message_text,
-                parse_mode='HTML'
-            ),
-        )
-
-        await inline_query.answer(results=[result], cache_time=10, is_personal=True)
-
-    except Exception as e:
-        logger.error(f"Error in handle_inline_query: {e}", exc_info=True)
-        await inline_query.answer(results=[], cache_time=10)

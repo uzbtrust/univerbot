@@ -165,17 +165,18 @@ referral_back = InlineKeyboardMarkup(inline_keyboard=[
 
 
 def build_ramadan_gift_kb(bot_username: str, user_id: int):
-    """Ramazon sovg'asi uchun keyboard — share + stats + orqaga."""
+    """Ramazon sovg'asi uchun keyboard — forward + share + stats + orqaga."""
+    from urllib.parse import quote
     ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
     share_text = (
-        f"Bepul Premium olish imkoniyati!\n\n"
-        f"Do'stlaringizni taklif qiling va premium obunaga ega bo'ling!\n\n"
-        f"5 ta do'st = 1 hafta\n"
-        f"10 ta do'st = 2 hafta\n"
-        f"18 ta do'st = 1 oy\n\n"
-        f"{ref_link}"
+        "🎁 Ramazon sovg'asi!\n\n"
+        "Menejer AI botida do'stlaringizni taklif qiling va bepul Premium oling!\n\n"
+        "🥉 5 ta do'st = 1 hafta Premium\n"
+        "🥈 10 ta do'st = 2 hafta Premium\n"
+        "🥇 18 ta do'st = 1 oy Premium\n\n"
+        "👇 Shu havolani bosing va botni ishga tushiring:"
     )
-    share_url = f"https://t.me/share/url?url={ref_link}&text={share_text}"
+    share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote(share_text)}"
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='📤 Do\'stlarga ulashish', url=share_url)],
         [InlineKeyboardButton(text='📊 Mening statistikam', callback_data='referral_stats')],

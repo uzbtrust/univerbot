@@ -54,6 +54,8 @@ async def show_ramadan_gift(call: CallbackQuery):
         activated = await db.get_referral_count(user_id, activated_only=True)
         total = await db.get_referral_count(user_id, activated_only=False)
 
+        ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+
         caption = (
             "<b>🎁 RAMAZON SOVG'ASI</b>\n\n"
             "Do'stlaringizni taklif qiling va <b>bepul Premium</b> oling!\n\n"
@@ -62,8 +64,9 @@ async def show_ramadan_gift(call: CallbackQuery):
             f"🥈 {REFERRAL_TIER2_COUNT} ta do'st = <b>{REFERRAL_TIER2_DAYS} kun</b> Premium\n"
             f"🥇 {REFERRAL_TIER3_COUNT} ta do'st = <b>{REFERRAL_TIER3_DAYS} kun</b> Premium\n\n"
             "<b>Shart:</b> Do'stingiz kanal biriktirib, kamida 1 ta post qo'shishi kerak.\n\n"
-            f"Sizning taklif qilganlaringiz: <b>{total}</b>\n"
-            f"Faollashganlar: <b>{activated}</b>"
+            f"📊 Taklif qilganlaringiz: <b>{total}</b> | Faol: <b>{activated}</b>\n\n"
+            f"👇 <b>Sizning havolangiz:</b>\n"
+            f"{ref_link}"
         )
 
         keyboard = build_ramadan_gift_kb(bot_username, user_id)

@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.types import CallbackQuery, FSInputFile, Message
 from aiogram import Bot
 
 from utils.database import db
@@ -94,6 +94,53 @@ async def show_ramadan_gift(call: CallbackQuery):
     except Exception as e:
         logger.error(f"Error in show_ramadan_gift: {e}", exc_info=True)
         await call.answer("Xatolik yuz berdi", show_alert=True)
+
+
+async def show_ramadan_gift_cmd(message: Message):
+    """/referral komandasi — Ramazon sovg'asi sahifasini ko'rsatish."""
+    try:
+        user_id = message.from_user.id
+        bot_info = await message.bot.get_me()
+        bot_username = bot_info.username
+
+        activated = await db.get_referral_count(user_id, activated_only=True)
+        total = await db.get_referral_count(user_id, activated_only=False)
+
+        ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+
+        caption = (
+            "<b>🎁 RAMAZON SOVG'ASI</b>\n\n"
+            "Do'stlaringizni taklif qiling va <b>bepul Premium</b> oling!\n\n"
+            "<b>Mukofotlar:</b>\n"
+            f"🥉 {REFERRAL_TIER1_COUNT} ta do'st = <b>{REFERRAL_TIER1_DAYS} kun</b> Premium\n"
+            f"🥈 {REFERRAL_TIER2_COUNT} ta do'st = <b>{REFERRAL_TIER2_DAYS} kun</b> Premium\n"
+            f"🥇 {REFERRAL_TIER3_COUNT} ta do'st = <b>{REFERRAL_TIER3_DAYS} kun</b> Premium\n\n"
+            "<b>Shart:</b> Do'stingiz kanal biriktirib, kamida 1 ta post qo'shishi kerak.\n\n"
+            f"📊 Taklif qilganlaringiz: <b>{total}</b> | Faol: <b>{activated}</b>\n\n"
+            f"👇 <b>Sizning havolangiz:</b>\n"
+            f"{ref_link}"
+        )
+
+        keyboard = build_ramadan_gift_kb(bot_username, user_id)
+
+        if os.path.exists(IMAGE_PATH):
+            photo = FSInputFile(IMAGE_PATH)
+            await message.answer_photo(
+                photo=photo,
+                caption=caption,
+                reply_markup=keyboard,
+                parse_mode='HTML'
+            )
+        else:
+            await message.answer(
+                caption,
+                reply_markup=keyboard,
+                parse_mode='HTML'
+            )
+
+    except Exception as e:
+        logger.error(f"Error in show_ramadan_gift_cmd: {e}", exc_info=True)
+        await message.answer("Xatolik yuz berdi")
 
 
 async def show_referral_stats(call: CallbackQuery):

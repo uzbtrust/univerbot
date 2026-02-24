@@ -165,19 +165,8 @@ referral_back = InlineKeyboardMarkup(inline_keyboard=[
 
 
 def build_ramadan_gift_kb(bot_username: str, user_id: int):
-    """Ramazon sovg'asi uchun keyboard — inline forward + stats + orqaga."""
-    from aiogram.types import SwitchInlineQueryChosenChat
+    """Ramazon sovg'asi uchun keyboard — stats + orqaga."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text='📤 Do\'stlarga yuborish',
-            switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
-                query=f"ref_{user_id}",
-                allow_user_chats=True,
-                allow_group_chats=True,
-                allow_bot_chats=False,
-                allow_channel_chats=True
-            )
-        )],
         [InlineKeyboardButton(text='📊 Mening statistikam', callback_data='referral_stats')],
         [InlineKeyboardButton(text='◀️ Orqaga', callback_data='back')]
     ])

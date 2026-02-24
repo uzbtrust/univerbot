@@ -4,6 +4,7 @@ from config import WEEKLY_PRICE, DAY15_PRICE, MONTHLY_PRICE
 
 # Oddiy foydalanuvchi uchun bosh menyu
 non_premium = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='🎁 Ramazon sovg\'asi', callback_data='ramadan_gift')],
     [InlineKeyboardButton(text='📢 Kanal biriktirish', callback_data='channel')],
     [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
     [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
@@ -12,6 +13,7 @@ non_premium = InlineKeyboardMarkup(inline_keyboard=[
 
 # Premium foydalanuvchi uchun bosh menyu
 premium = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='🎁 Ramazon sovg\'asi', callback_data='ramadan_gift')],
     [InlineKeyboardButton(text='💎 Kanal biriktirish', callback_data='channel')],
     [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
     [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
@@ -20,6 +22,7 @@ premium = InlineKeyboardMarkup(inline_keyboard=[
 
 # Superadmin (oddiy) uchun bosh menyu
 superadmin_main = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='🎁 Ramazon sovg\'asi', callback_data='ramadan_gift')],
     [InlineKeyboardButton(text='📢 Kanal biriktirish', callback_data='channel')],
     [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
     [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
@@ -29,6 +32,7 @@ superadmin_main = InlineKeyboardMarkup(inline_keyboard=[
 
 # Superadmin (premium) uchun bosh menyu
 superadmin_premium_main = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='🎁 Ramazon sovg\'asi', callback_data='ramadan_gift')],
     [InlineKeyboardButton(text='💎 Kanal biriktirish', callback_data='channel')],
     [InlineKeyboardButton(text='📝 Post qo\'shish', callback_data='add_post')],
     [InlineKeyboardButton(text='⚙️ Kanal sozlamalari', callback_data='manage_channels')],
@@ -101,6 +105,7 @@ cheque_check = InlineKeyboardMarkup(inline_keyboard=[
 admin_panel = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='📊 Statistika', callback_data='admin_stats')],
     [InlineKeyboardButton(text='📢 Xabar yuborish', callback_data='admin_broadcast')],
+    [InlineKeyboardButton(text='🔗 Referal', callback_data='admin_referral')],
     [InlineKeyboardButton(text='📋 24h Loglar', callback_data='admin_logs')],
     [InlineKeyboardButton(text='💾 Backuplar', callback_data='admin_backups')],
     [InlineKeyboardButton(text='⚙️ Bot sozlamalari', callback_data='admin_settings')],
@@ -152,6 +157,30 @@ limits_settings_menu = InlineKeyboardMarkup(inline_keyboard=[
 back_to_settings = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='◀️ Orqaga', callback_data='admin_settings')]
 ])
+
+
+referral_back = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='◀️ Orqaga', callback_data='back')]
+])
+
+
+def build_ramadan_gift_kb(bot_username: str, user_id: int):
+    """Ramazon sovg'asi uchun keyboard — share + stats + orqaga."""
+    ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+    share_text = (
+        f"Bepul Premium olish imkoniyati!\n\n"
+        f"Do'stlaringizni taklif qiling va premium obunaga ega bo'ling!\n\n"
+        f"5 ta do'st = 1 hafta\n"
+        f"10 ta do'st = 2 hafta\n"
+        f"18 ta do'st = 1 oy\n\n"
+        f"{ref_link}"
+    )
+    share_url = f"https://t.me/share/url?url={ref_link}&text={share_text}"
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='📤 Do\'stlarga ulashish', url=share_url)],
+        [InlineKeyboardButton(text='📊 Mening statistikam', callback_data='referral_stats')],
+        [InlineKeyboardButton(text='◀️ Orqaga', callback_data='back')]
+    ])
 
 
 def build_channels_keyboard(channels, is_premium: bool):

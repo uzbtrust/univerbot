@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 TZ = ZoneInfo("Asia/Tashkent")
 
 BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backups")
-TABLES = ["superadmins", "users", "channel", "premium_channel", "daily_stats"]
+TABLES = ["superadmins", "users", "channel", "premium_channel", "daily_stats", "referrals"]
 
 
 async def create_backup(backup_name: str = "backup.sql") -> str | None:

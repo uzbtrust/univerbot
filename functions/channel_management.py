@@ -12,6 +12,26 @@ from utils.validators import validate_time_format
 logger = logging.getLogger(__name__)
 
 
+async def _check_referral_activation(user_id: int, user_name: str, bot: Bot):
+    """Post qo'shilganda referral faollashtirishni tekshirish."""
+    try:
+        referrer_id = await db.get_referrer_of(user_id)
+        if not referrer_id:
+            return
+        if await db.has_activated_referral(user_id):
+            return
+
+        await db.activate_referral(user_id)
+
+        from functions.referral import notify_referrer_activated, check_and_award_premium
+        await notify_referrer_activated(referrer_id, user_name, bot)
+        await check_and_award_premium(referrer_id, bot)
+
+        logger.info(f"Referral activated: user={user_id}, referrer={referrer_id}")
+    except Exception as e:
+        logger.error(f"Error in referral activation: {e}", exc_info=True)
+
+
 async def create_channels_list_keyboard(channels, action_prefix, bot: Bot = None):
     keyboard = []
 
@@ -690,6 +710,9 @@ async def process_add_post_theme(message: Message, state: FSMContext):
         else:
             await db.add_new_post(channel_id, post_num, post_time, message.text, premium=is_premium, with_image='no')
 
+            # Referral activation trigger
+            await _check_referral_activation(message.from_user.id, message.from_user.full_name, message.bot)
+
             await message.answer(
                 f"✅ <b>Post muvaffaqiyatli qo'shildi!</b>\n\n"
                 f"Post raqami: {post_num}\n"
@@ -725,6 +748,9 @@ async def process_add_post_image(call: CallbackQuery, state: FSMContext):
         with_image = 'yes' if call.data == 'p_image_yes' else 'no'
 
         await db.add_new_post(channel_id, post_num, post_time, post_theme, premium=True, with_image=with_image)
+
+        # Referral activation trigger
+        await _check_referral_activation(call.from_user.id, call.from_user.full_name, call.bot)
 
         image_text = "Rasm bilan" if with_image == 'yes' else "Rasmsiz"
 

@@ -176,6 +176,14 @@ STYLE REQUIREMENTS:
 OUTPUT: Single cohesive image, 1:1 aspect ratio, photorealistic or high-quality illustration style."""
 )
 
+# Referral thresholds (Ramazon)
+REFERRAL_TIER1_COUNT = get_env_int("REFERRAL_TIER1_COUNT", 5)
+REFERRAL_TIER1_DAYS = get_env_int("REFERRAL_TIER1_DAYS", 7)
+REFERRAL_TIER2_COUNT = get_env_int("REFERRAL_TIER2_COUNT", 10)
+REFERRAL_TIER2_DAYS = get_env_int("REFERRAL_TIER2_DAYS", 14)
+REFERRAL_TIER3_COUNT = get_env_int("REFERRAL_TIER3_COUNT", 18)
+REFERRAL_TIER3_DAYS = get_env_int("REFERRAL_TIER3_DAYS", 30)
+
 IMAGE_MODE = get_env_str("IMAGE_MODE", "OFF").upper() == "ON"
 
 LOG_LEVEL = get_env_str("LOG_LEVEL", "INFO").upper()

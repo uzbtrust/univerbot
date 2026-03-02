@@ -176,6 +176,10 @@ STYLE REQUIREMENTS:
 OUTPUT: Single cohesive image, 1:1 aspect ratio, photorealistic or high-quality illustration style."""
 )
 
+# Grok API pricing ($ per 1M tokens)
+GROK_INPUT_PRICE_PER_M = 0.20
+GROK_OUTPUT_PRICE_PER_M = 0.50
+
 # Referral thresholds (Ramazon)
 REFERRAL_TIER1_COUNT = get_env_int("REFERRAL_TIER1_COUNT", 5)
 REFERRAL_TIER1_DAYS = get_env_int("REFERRAL_TIER1_DAYS", 7)

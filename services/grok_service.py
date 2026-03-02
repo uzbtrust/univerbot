@@ -16,6 +16,7 @@ from config import (
 from aiolimiter import AsyncLimiter
 from services.circuit_breaker import CircuitBreaker
 from config import GROK_RATE_LIMIT
+from utils.database import db
 
 logger = logging.getLogger(__name__)
 grok_limiter = AsyncLimiter(max_rate=GROK_RATE_LIMIT, time_period=60)
@@ -90,6 +91,18 @@ class GrokService:
 
                 generated_text = response.choices[0].message.content.strip()
                 self.circuit.record_success()
+
+                # Token usage tracking
+                if hasattr(response, 'usage') and response.usage:
+                    try:
+                        await db.record_api_usage(
+                            model=model,
+                            input_tokens=response.usage.prompt_tokens or 0,
+                            output_tokens=response.usage.completion_tokens or 0
+                        )
+                    except Exception as usage_err:
+                        logger.warning(f"Failed to record API usage: {usage_err}")
+
                 logger.info(f"✅ Post generated: {generated_text[:80]}...")
                 return generated_text
 

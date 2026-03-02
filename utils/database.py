@@ -133,6 +133,17 @@ class DatabaseManager:
                 )
             '''))
 
+            await conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS api_usage (
+                    date TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    input_tokens INTEGER DEFAULT 0,
+                    output_tokens INTEGER DEFAULT 0,
+                    requests_count INTEGER DEFAULT 0,
+                    PRIMARY KEY (date, model)
+                )
+            '''))
+
             # Indexes
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_sub ON users(subscription)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_channel_uid ON channel(user_id)"))
@@ -460,6 +471,31 @@ class DatabaseManager:
             "SELECT date, total_users, premium_users, total_channels, total_posts, posts_with_image "
             "FROM daily_stats ORDER BY date DESC LIMIT ?",
             (days,), fetch_all=True
+        )
+
+    # ============== API Usage Methods ==============
+
+    async def record_api_usage(self, model: str, input_tokens: int, output_tokens: int):
+        today = datetime.now(TZ).strftime("%Y-%m-%d")
+        await self.execute_query(
+            """INSERT INTO api_usage (date, model, input_tokens, output_tokens, requests_count)
+               VALUES (?, ?, ?, ?, 1)
+               ON CONFLICT (date, model) DO UPDATE SET
+               input_tokens = api_usage.input_tokens + excluded.input_tokens,
+               output_tokens = api_usage.output_tokens + excluded.output_tokens,
+               requests_count = api_usage.requests_count + 1""",
+            (today, model, input_tokens, output_tokens)
+        )
+
+    async def get_api_usage_summary(self, days: int):
+        """So'nggi N kun uchun jami tokenlar va requestlar (model bo'yicha)."""
+        return await self.execute_query(
+            "SELECT model, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, "
+            "SUM(requests_count) as total_requests "
+            "FROM api_usage WHERE date >= ? GROUP BY model",
+            (datetime.now(TZ).strftime("%Y-%m-%d") if days == 0
+             else (datetime.now(TZ) - timedelta(days=days)).strftime("%Y-%m-%d"),),
+            fetch_all=True
         )
 
     # ============== Referral Methods ==============

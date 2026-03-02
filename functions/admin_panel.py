@@ -16,7 +16,7 @@ from utils.database import db
 from utils.env_manager import update_env_value, get_current_settings
 from utils.security import validate_broadcast_message
 from utils.stats_chart import generate_stats_chart
-from config import SUPER_ADMIN1, SUPER_ADMIN2
+from config import SUPER_ADMIN1, SUPER_ADMIN2, GROK_INPUT_PRICE_PER_M, GROK_OUTPUT_PRICE_PER_M
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,22 @@ async def show_statistics(call: CallbackQuery):
         total_channels = await db.get_total_channels()
         total_posts, posts_with_image = await db.count_total_active_posts()
 
+        # Grok API usage
+        def _calc_cost(rows):
+            inp = sum(r[1] or 0 for r in rows)
+            out = sum(r[2] or 0 for r in rows)
+            reqs = sum(r[3] or 0 for r in rows)
+            cost = (inp / 1_000_000) * GROK_INPUT_PRICE_PER_M + (out / 1_000_000) * GROK_OUTPUT_PRICE_PER_M
+            return inp, out, reqs, cost
+
+        usage_today = await db.get_api_usage_summary(days=0)
+        usage_week = await db.get_api_usage_summary(days=7)
+        usage_month = await db.get_api_usage_summary(days=30)
+
+        t_inp, t_out, t_req, t_cost = _calc_cost(usage_today or [])
+        w_inp, w_out, w_req, w_cost = _calc_cost(usage_week or [])
+        m_inp, m_out, m_req, m_cost = _calc_cost(usage_month or [])
+
         stats_text = (
             "<b>📊 Bot Statistikasi</b>\n\n"
             f"👥 Jami foydalanuvchilar: <b>{total_users}</b>\n"
@@ -67,7 +83,12 @@ async def show_statistics(call: CallbackQuery):
             f"👤 Oddiy: <b>{free_users}</b>\n\n"
             f"📢 Jami kanallar: <b>{total_channels}</b>\n"
             f"📝 Jami postlar: <b>{total_posts}</b>\n"
-            f"🖼 Rasmli postlar: <b>{posts_with_image}</b>\n"
+            f"🖼 Rasmli postlar: <b>{posts_with_image}</b>\n\n"
+            f"<b>💰 Grok API xarajatlari:</b>\n"
+            f"├ Bugun:  <b>{t_req}</b> req | <b>${t_cost:.4f}</b>\n"
+            f"├ Hafta:  <b>{w_req}</b> req | <b>${w_cost:.4f}</b>\n"
+            f"└ Oy:     <b>{m_req}</b> req | <b>${m_cost:.4f}</b>\n"
+            f"📊 Oy tokenlar: in={m_inp:,} | out={m_out:,}\n"
         )
 
         # Grafik yaratish

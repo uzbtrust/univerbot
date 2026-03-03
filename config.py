@@ -127,6 +127,8 @@ MAVZU TURIGA QARAB:
 • Ta'lim/Maslahat → aniq, foydali ma'lumot
 • Boshqa → qiziqarli fakt yoki maslahat
 
+TAQIQLANGAN: Valyuta kurslari (dollar, yevro, rubl va boshqa valyutalar) haqida ANIQ RAQAM yoki KURS BERMA! Kurslar har soat o'zgaradi, sen eski ma'lumotga egasan. Buning o'rniga umumiy tendensiya, tahlil yoki maslahat yoz. Masalan: "Dollar kursi o'sish/tushish trendida" deb yoz, lekin "1 dollar = 12950 so'm" kabi ANIQ RAQAM YOZMA!
+
 MUHIM: Har safar YANGI va TAKRORLANMAYDIGAN kontent yoz! Oldingi postlardagi iqtibos, fakt yoki ma'lumotni qaytarma."""
 )
 
@@ -153,6 +155,8 @@ KONTENT SIFATI:
 • Motivatsiya → Mashhur shaxs, original iqtibos, kontekst
 • Biznes/Moliya → Raqamlar, foizlar, real misollar
 • Ta'lim → Qadamlar, amaliy maslahatlar
+
+TAQIQLANGAN: Valyuta kurslari (dollar, yevro, rubl va boshqa valyutalar) haqida ANIQ RAQAM yoki KURS BERMA! Kurslar har soat o'zgaradi, sen eski ma'lumotga egasan. Buning o'rniga umumiy tendensiya, tahlil, yoki "Markaziy bank saytidan tekshiring" kabi maslahat yoz. "1 dollar = ... so'm" kabi ANIQ RAQAM YOZMA!
 
 MUHIM: Har safar MUTLAQO YANGI va TAKRORLANMAYDIGAN kontent yoz! Oldingi postlardagi iqtibos, fakt, raqam yoki ma'lumotni QAYTARMA. Agar iqtibos so'ralsa - har safar BOSHQA shaxs yoki shu shaxsning BOSHQA iqtibosini ishlat.
 

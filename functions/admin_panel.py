@@ -76,6 +76,22 @@ async def show_statistics(call: CallbackQuery):
         w_inp, w_out, w_req, w_cost = _calc_cost(usage_week or [])
         m_inp, m_out, m_req, m_cost = _calc_cost(usage_month or [])
 
+        # Prognoz: o'rtacha kunlik temp asosida
+        usage_days = await db.get_api_usage_days_count()
+        all_usage = await db.get_api_usage_summary(days=9999)
+        all_inp, all_out, all_req, all_cost = _calc_cost(all_usage or [])
+
+        if usage_days and usage_days > 0:
+            daily_avg_cost = all_cost / usage_days
+            daily_avg_req = all_req / usage_days
+        else:
+            daily_avg_cost = t_cost
+            daily_avg_req = t_req
+
+        pred_day = daily_avg_cost
+        pred_week = daily_avg_cost * 7
+        pred_month = daily_avg_cost * 30
+
         stats_text = (
             "<b>📊 Bot Statistikasi</b>\n\n"
             f"👥 Jami foydalanuvchilar: <b>{total_users}</b>\n"
@@ -87,8 +103,11 @@ async def show_statistics(call: CallbackQuery):
             f"<b>💰 Grok API xarajatlari:</b>\n"
             f"├ Bugun:  <b>{t_req}</b> req | <b>${t_cost:.4f}</b>\n"
             f"├ Hafta:  <b>{w_req}</b> req | <b>${w_cost:.4f}</b>\n"
-            f"└ Oy:     <b>{m_req}</b> req | <b>${m_cost:.4f}</b>\n"
-            f"📊 Oy tokenlar: in={m_inp:,} | out={m_out:,}\n"
+            f"└ Oy:     <b>{m_req}</b> req | <b>${m_cost:.4f}</b>\n\n"
+            f"<b>📈 Prognoz (o'rtacha {daily_avg_req:.0f} req/kun):</b>\n"
+            f"├ Kuniga:   ~<b>${pred_day:.4f}</b>\n"
+            f"├ Haftasiga: ~<b>${pred_week:.4f}</b>\n"
+            f"└ Oyiga:    ~<b>${pred_month:.4f}</b>\n"
         )
 
         # Grafik yaratish

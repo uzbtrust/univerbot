@@ -2,6 +2,7 @@ import logging
 import asyncio
 import random
 import hashlib
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
@@ -90,6 +91,9 @@ class GrokService:
                     )
 
                 generated_text = response.choices[0].message.content.strip()
+                # Telegram HTML da qo'llab-quvvatlanmaydigan teglarni tozalash
+                generated_text = re.sub(r'<br\s*/?>', '\n', generated_text)
+                generated_text = re.sub(r'<(?!/?(?:b|i|u|s|a|code|pre)\b)[^>]+>', '', generated_text)
                 self.circuit.record_success()
 
                 # Token usage tracking

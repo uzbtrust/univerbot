@@ -252,7 +252,7 @@ async def approving(call: CallbackQuery):
 
         await db.execute_query(
             "UPDATE users SET start_date = ?, end_date = ? WHERE id = ?",
-            (start_date.isoformat(), end_date.isoformat(), user_id)
+            (start_date, end_date, user_id)
         )
 
         await call.message.delete()

@@ -114,7 +114,7 @@ class DatabaseManager:
             '''))
             await conn.execute(text('''
                 CREATE TABLE IF NOT EXISTS referrals (
-                    id INTEGER PRIMARY KEY,
+                    id SERIAL PRIMARY KEY,
                     referrer_id BIGINT NOT NULL,
                     referred_id BIGINT NOT NULL UNIQUE,
                     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -173,6 +173,20 @@ class DatabaseManager:
                     await conn.execute(text(stmt))
                 except Exception:
                     pass  # Ustun allaqachon mavjud (SQLite uchun)
+
+            # Migratsiya: referrals.id ga sequence bog'lash (eski INTEGER PRIMARY KEY uchun)
+            try:
+                await conn.execute(text(
+                    "CREATE SEQUENCE IF NOT EXISTS referrals_id_seq OWNED BY referrals.id"
+                ))
+                await conn.execute(text(
+                    "SELECT setval('referrals_id_seq', COALESCE((SELECT MAX(id) FROM referrals), 0) + 1, false)"
+                ))
+                await conn.execute(text(
+                    "ALTER TABLE referrals ALTER COLUMN id SET DEFAULT nextval('referrals_id_seq')"
+                ))
+            except Exception:
+                pass  # Allaqachon SERIAL yoki sequence mavjud
 
         self._db_ready = True
         logger.info("Database initialized (PostgreSQL + asyncpg)")
@@ -497,6 +511,14 @@ class DatabaseManager:
              else (datetime.now(TZ) - timedelta(days=days)).strftime("%Y-%m-%d"),),
             fetch_all=True
         )
+
+    async def get_api_usage_days_count(self) -> int:
+        """API usage yozilgan kunlar soni (o'rtacha hisoblash uchun)."""
+        result = await self.execute_query(
+            "SELECT COUNT(DISTINCT date) FROM api_usage",
+            fetch_one=True
+        )
+        return result[0] if result else 0
 
     # ============== Referral Methods ==============
 

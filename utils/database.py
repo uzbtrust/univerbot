@@ -346,6 +346,23 @@ class DatabaseManager:
     async def is_premium(self, user_id: int) -> bool:
         return await self.is_premium_user(user_id)
 
+    async def get_expired_premium_users(self):
+        """Muddati o'tgan premium userlarni topish (subscription=TRUE, end_date < now)."""
+        return await self.execute_query(
+            "SELECT id, premium_type, end_date FROM users "
+            "WHERE subscription = TRUE AND end_date IS NOT NULL AND end_date < NOW()",
+            fetch_all=True
+        )
+
+    async def expire_user_premium(self, user_id: int):
+        """Userni premiumdan chiqarish."""
+        await self.execute_query(
+            "UPDATE users SET subscription = FALSE, premium_type = NULL WHERE id = ?",
+            (user_id,)
+        )
+        if user_id in self._premium_cache:
+            del self._premium_cache[user_id]
+
     async def get_total_users(self) -> int:
         result = await self.execute_query("SELECT COUNT(*) FROM users", fetch_one=True)
         return result[0] if result else 0

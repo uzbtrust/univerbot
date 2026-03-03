@@ -71,7 +71,30 @@ class BotManager:
                 except Exception as e:
                     logger.error(f"Kunlik statistika xatolik: {e}")
 
-                # 2. Backup yaratish
+                # 2. Muddati o'tgan premiumlarni tekshirish
+                try:
+                    expired_users = await db.get_expired_premium_users()
+                    for user in expired_users:
+                        user_id = user[0]
+                        await db.expire_user_premium(user_id)
+                        try:
+                            from keyboards.inline import premium_buy
+                            await self.bot.send_message(
+                                chat_id=user_id,
+                                text="⏰ <b>Premium obunangiz tugadi!</b>\n\n"
+                                     "Premium imkoniyatlardan foydalanishni davom ettirish uchun "
+                                     "obunani yangilang 👇",
+                                parse_mode="HTML",
+                                reply_markup=premium_buy
+                            )
+                        except Exception as notify_err:
+                            logger.warning(f"Premium expiry notify failed for {user_id}: {notify_err}")
+                    if expired_users:
+                        logger.info(f"Premium expired: {len(expired_users)} ta user o'chirildi")
+                except Exception as e:
+                    logger.error(f"Premium expiry check xatolik: {e}")
+
+                # 3. Backup yaratish
                 try:
                     today_str = datetime.now(self._tz).strftime("%Y-%m-%d")
                     backup_path = await create_backup(f"backup_{today_str}.sql")
@@ -111,6 +134,29 @@ class BotManager:
             await db.record_daily_stats()
         except Exception as e:
             logger.warning(f"Daily stats record failed: {e}")
+
+        # Startup'da muddati o'tgan premiumlarni tekshirish
+        try:
+            from keyboards.inline import premium_buy
+            expired_users = await db.get_expired_premium_users()
+            for user in expired_users:
+                user_id = user[0]
+                await db.expire_user_premium(user_id)
+                try:
+                    await bot.send_message(
+                        chat_id=user_id,
+                        text="⏰ <b>Premium obunangiz tugadi!</b>\n\n"
+                             "Premium imkoniyatlardan foydalanishni davom ettirish uchun "
+                             "obunani yangilang 👇",
+                        parse_mode="HTML",
+                        reply_markup=premium_buy
+                    )
+                except Exception:
+                    pass
+            if expired_users:
+                logger.info(f"Startup: {len(expired_users)} ta expired premium o'chirildi")
+        except Exception as e:
+            logger.warning(f"Startup premium expiry check failed: {e}")
 
         try:
             await bot.send_message(chat_id=ADMIN_GROUP_ID, text="🚀 Bot va Post Scheduler ishga tushdi")

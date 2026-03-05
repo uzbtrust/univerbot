@@ -3,6 +3,7 @@ import asyncio
 import random
 import hashlib
 import re
+import aiohttp
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
@@ -21,6 +22,39 @@ from utils.database import db
 
 logger = logging.getLogger(__name__)
 grok_limiter = AsyncLimiter(max_rate=GROK_RATE_LIMIT, time_period=60)
+
+CURRENCY_KEYWORDS = {"dollar", "valyuta", "kurs", "rubl", "yevro", "evro", "usd", "eur", "rub", "so'm"}
+CBU_API_URL = "https://cbu.uz/uz/arkhiv-kursov-valyut/json/"
+
+
+async def fetch_exchange_rates() -> Optional[str]:
+    """Markaziy bankdan (cbu.uz) bugungi valyuta kurslarini olish."""
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+            async with session.get(CBU_API_URL) as resp:
+                if resp.status != 200:
+                    return None
+                data = await resp.json()
+                rates = {}
+                for item in data:
+                    if item.get("Ccy") in ("USD", "EUR", "RUB", "GBP", "CNY"):
+                        rates[item["Ccy"]] = item["Rate"]
+                if not rates:
+                    return None
+                date_str = data[0].get("Date", "")
+                lines = [f"O'zbekiston Markaziy banki kurslari ({date_str}):"]
+                for ccy, rate in rates.items():
+                    lines.append(f"  1 {ccy} = {rate} so'm")
+                return "\n".join(lines)
+    except Exception as e:
+        logger.warning(f"Failed to fetch exchange rates: {e}")
+        return None
+
+
+def _is_currency_topic(theme: str) -> bool:
+    """Mavzu valyuta kurslariga oidmi tekshirish."""
+    theme_lower = theme.lower()
+    return any(kw in theme_lower for kw in CURRENCY_KEYWORDS)
 
 
 class GrokService:
@@ -48,6 +82,12 @@ class GrokService:
             model = GROK_MODEL_FREE
             prompt = GROK_PROMPT_FREE.format(user_words=theme, today=today_str)
             max_tokens = GROK_MAX_TOKENS_FREE
+
+        # Valyuta mavzusi bo'lsa — real kurslarni promptga kiritish
+        if _is_currency_topic(theme):
+            rates_text = await fetch_exchange_rates()
+            if rates_text:
+                prompt += f"\n\nBUGUNGI REAL VALYUTA KURSLARI (Markaziy bank ma'lumoti):\n{rates_text}\nSHU ANIQ RAQAMLARNI ISHLAT!"
 
         logger.info(f"🤖 Grok | Model: {model} | Theme: '{theme}' | Premium: {is_premium}")
 

@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 def get_env_int(key: str, default: int = None) -> int:
     value = os.getenv(key)
     if value is None:
